@@ -1,0 +1,198 @@
+{
+  "meta": {
+    "as_of_date": "2026-11-13",
+    "settle_date": "2026-11-13",
+    "delivery_date": "2026-12-11",
+    "contract": "T2612",
+    "exchange": "CFE",
+    "product": "t",
+    "futures_price": 107.32,
+    "futures_price_origin": "declared_scenario_not_market_quote",
+    "delivery_date_origin": "declared_scenario_not_official_calendar",
+    "delivery_settlement_price_rule": "情景假设：交割结算价以当前期货价格代理；真实交割结算价由交易所按交割月规则产生，二者不等价。",
+    "nominal_standard_coupon": 0.03,
+    "tick_size": 0.005,
+    "contract_notional_wan": 100,
+    "eligible_rule_note": "T 合约可交割券为剩余期限约 6.5-10.25 年的记账式附息国债；本情景只用 4 只给定券覆盖短/中/长端，不等同于交易所实际可交割券清单。",
+    "data_version": "degraded-ctd-irr-v1-64e0d9b08206",
+    "source_mode": "degraded",
+    "input_origin": "declared_scenario",
+    "source_ref": null,
+    "data_asof": null,
+    "scenario_spec": "data/scenario_spec.json",
+    "scenario_spec_sha256_12": "64e0d9b08206",
+    "generated_by": "scripts/build_snapshot.py",
+    "market_conclusion": false,
+    "WARNING": "本文件全部数值是为复现公式与情景逻辑而设定的给定参数，不是任何真实交易日的市场报价、交易所公告或中债估值。禁止据此形成市场结论。"
+  },
+  "contract_terms": {
+    "settlement": "physical_delivery",
+    "invoice_price_formula": "F_delivery * CF + AI_delivery",
+    "conversion_factor_source": "declared_scenario_derived_from_3pct_standard_coupon_NOT_exchange_published",
+    "accrual_basis": "ACT/ACT",
+    "day_count": "ACT/365 for simple repo rate",
+    "deliverable_basket_size": 4
+  },
+  "costs": {
+    "repo_rate": 0.0185,
+    "bond_lend_fee": 0.006,
+    "transaction_cost_bp": 0.5,
+    "delivery_fee_per_100": 0.02,
+    "slippage_bp": 1.0,
+    "ctd_switch_buffer_bp": 5.0,
+    "origin": "declared_scenario"
+  },
+  "capacity": {
+    "max_position_lots_per_account": 2000,
+    "assumed_participation_ratio": 0.05,
+    "origin": "declared_scenario_not_exchange_rule"
+  },
+  "yield_curve": {
+    "level": 0.0185,
+    "slope_per_year": 6e-05,
+    "shape": "flat_plus_linear_slope",
+    "origin": "declared_scenario"
+  },
+  "deliverable_basket": [
+    {
+      "bond_id": "SCEN-A",
+      "name": "情景券A_中久期高票息",
+      "coupon": 0.0272,
+      "freq": 1,
+      "maturity": "2034-05-15",
+      "last_coupon": "2026-05-15",
+      "next_coupon": "2027-05-15",
+      "accrual_basis": "ACT/ACT",
+      "clean_price": 105.282871,
+      "accrued_interest": 1.356274,
+      "dirty_price": 106.639145,
+      "conversion_factor": 0.980345,
+      "modified_duration": 6.689783,
+      "available_notional_wan": 120000.0,
+      "lendable_notional_wan": 30000.0,
+      "_derived": {
+        "yield_to_maturity": 0.01955041,
+        "remaining_years": 7.5068,
+        "remaining_coupons": 8,
+        "dirty_price_origin": "derived_from_declared_yield_curve",
+        "accrued_origin": "ACT/ACT from declared coupon schedule",
+        "conversion_factor_origin": "derived_from_3pct_standard_coupon_discount_NOT_exchange_published"
+      }
+    },
+    {
+      "bond_id": "SCEN-B",
+      "name": "情景券B_长久期低票息",
+      "coupon": 0.0195,
+      "freq": 1,
+      "maturity": "2036-03-15",
+      "last_coupon": "2026-03-15",
+      "next_coupon": "2027-03-15",
+      "accrual_basis": "ACT/ACT",
+      "clean_price": 98.51902,
+      "accrued_interest": 1.298219,
+      "dirty_price": 99.81724,
+      "conversion_factor": 0.910433,
+      "modified_duration": 8.330921,
+      "available_notional_wan": 90000.0,
+      "lendable_notional_wan": 8000.0,
+      "_derived": {
+        "yield_to_maturity": 0.02126055,
+        "remaining_years": 9.3425,
+        "remaining_coupons": 10,
+        "dirty_price_origin": "derived_from_declared_yield_curve",
+        "accrued_origin": "ACT/ACT from declared coupon schedule",
+        "conversion_factor_origin": "derived_from_3pct_standard_coupon_discount_NOT_exchange_published"
+      }
+    },
+    {
+      "bond_id": "SCEN-C",
+      "name": "情景券C_短久期中票息",
+      "coupon": 0.0235,
+      "freq": 1,
+      "maturity": "2033-09-15",
+      "last_coupon": "2026-09-15",
+      "next_coupon": "2027-09-15",
+      "accrual_basis": "ACT/ACT",
+      "clean_price": 102.979907,
+      "accrued_interest": 0.379863,
+      "dirty_price": 103.35977,
+      "conversion_factor": 0.959503,
+      "modified_duration": 6.264658,
+      "available_notional_wan": 150000.0,
+      "lendable_notional_wan": 45000.0,
+      "_derived": {
+        "yield_to_maturity": 0.01881063,
+        "remaining_years": 6.8438,
+        "remaining_coupons": 7,
+        "dirty_price_origin": "derived_from_declared_yield_curve",
+        "accrued_origin": "ACT/ACT from declared coupon schedule",
+        "conversion_factor_origin": "derived_from_3pct_standard_coupon_discount_NOT_exchange_published"
+      }
+    },
+    {
+      "bond_id": "SCEN-D",
+      "name": "情景券D_超长久期最低票息",
+      "coupon": 0.0162,
+      "freq": 1,
+      "maturity": "2036-11-15",
+      "last_coupon": "2025-11-15",
+      "next_coupon": "2026-11-15",
+      "accrual_basis": "ACT/ACT",
+      "clean_price": 95.273248,
+      "accrued_interest": 1.611123,
+      "dirty_price": 96.884372,
+      "conversion_factor": 0.882283,
+      "modified_duration": 8.949211,
+      "available_notional_wan": 60000.0,
+      "lendable_notional_wan": 5000.0,
+      "_derived": {
+        "yield_to_maturity": 0.02150082,
+        "remaining_years": 10.0137,
+        "remaining_coupons": 11,
+        "dirty_price_origin": "derived_from_declared_yield_curve",
+        "accrued_origin": "ACT/ACT from declared coupon schedule",
+        "conversion_factor_origin": "derived_from_3pct_standard_coupon_discount_NOT_exchange_published"
+      }
+    }
+  ],
+  "frozen_baseline": {
+    "baseline_id": "FB-2026-11-13-v1",
+    "rules_frozen": true,
+    "A_buy_and_hold": "按 repo_rate 融资买入 CTD 现券并持有到交割，不建期货腿。",
+    "B_simple_hedge": "买入 CTD 现券 + 固定 1:1 面值卖出期货（h=1），不随 CTD 切换调整，不做成本覆盖判断。",
+    "C_research": "按 IRR 选券 + DV01 比率对冲 + 仅在 IRR-r 覆盖全成本且 CTD 安全垫足够时执行。",
+    "comparison_rule": "同一输入快照、同一情景网格、同一成本带；只改变决策规则，不改数据与参数。",
+    "note": "冻结基线是本 skill 的对照基准，任何参数改动必须产生新的 baseline_id。"
+  },
+  "contest_scope": {
+    "platform": "QuantStudio",
+    "entry": "<DSH_HOME>/launch-quantskills.ps1 -> launcher.mjs -> dsh web",
+    "futures_leg_verifiable": true,
+    "cash_leg_verifiable": false,
+    "reason": "期货模拟赛只提供期货合约的行情/委托/成交接口，不提供现券交割、转换因子、应计利息、发票价格与债券借贷。",
+    "equivalent_replay_range": "期货腿以 order --dry-run 等价回放；现券腿、发票价与借券成本用本地确定性账本回放，不冒充成交回执。",
+    "live_order": false
+  },
+  "validation": {
+    "ok": true,
+    "errors": [],
+    "warnings": [],
+    "gap_notes": [
+      "输入缺少可核验的正式数据源/数据期，已按规范降级为 degraded。",
+      "缺失正式数据项 official_deliverable_list（交易所公布的可交割券清单）。",
+      "缺失正式数据项 bond_dirty_quote（现券全价/净价与应计利息（成交或中债估值））。",
+      "缺失正式数据项 official_conversion_factor（交易所公布的转换因子）。",
+      "缺失正式数据项 futures_market_quote（期货实时/结算行情）。",
+      "缺失正式数据项 repo_market_rate（市场回购融资利率）。",
+      "缺失正式数据项 bond_lend_market_rate（债券借贷/借券成本）。",
+      "缺失正式数据项 official_delivery_calendar（官方交割日历与交割结算价规则）。"
+    ],
+    "scope_reduction": [
+      "结论仅在该冻结输入快照下成立，不外推到任何真实交易日。",
+      "不输出确定性交易指令，不把账面基差/净基差称为无风险套利。",
+      "所有数值标注 derived / declared_scenario 来源，market_conclusion=false。",
+      "期货模拟赛无法核验现券交割、转换因子、应计利息与借券，须走等价回放（见 references/executable_boundary.md）。"
+    ],
+    "source_mode": "degraded"
+  }
+}

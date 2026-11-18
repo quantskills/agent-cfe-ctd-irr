@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Fig. · 国债期货 CTD / IRR / BNOC · 研究复现与可执行边界</title>
+<style>
+__FONT_FACES__
+:root{
+  --paper:#f4f1ea; --paper-2:#ebe6dc; --panel:#faf8f3;
+  --ink:#1c1a16; --ink-muted:#5c574e;
+  --rule:#c9c2b4; --rule-strong:#8a8376;
+  --accent:#0b5f6b;
+  --rec:#2a6f4e; --avoid:#9b3b2e; --caution:#a66b2b; --watch:#6b6560;
+  --mono:"IBM Plex Mono",Consolas,ui-monospace,monospace;
+  --sans:"Source Sans 3","Segoe UI","Microsoft YaHei",sans-serif;
+  --serif:"Source Serif 4",Georgia,"Songti SC","SimSun",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--sans);font-size:13px;line-height:1.5;color:var(--ink);
+  background:
+    radial-gradient(ellipse 120% 80% at 10% 0%,#e8e2d4 0%,transparent 55%),
+    radial-gradient(ellipse 90% 70% at 100% 100%,#ddd6c8 0%,transparent 50%),
+    var(--paper);
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+a{color:inherit}
+.fig-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--accent);text-transform:uppercase}
+.small{font-size:11px}
+.muted{color:var(--ink-muted)}
+
+/* 左侧目录 */
+.app{display:flex;min-height:100vh;align-items:stretch}
+.sidebar{
+  width:176px;flex:none;position:sticky;top:0;height:100vh;
+  background:var(--panel);border-right:1px solid var(--rule);
+  display:flex;flex-direction:column;z-index:40;
+}
+.side-brand{padding:22px 16px 18px;border-bottom:1px solid var(--rule)}
+.side-brand b{font-family:var(--serif);font-size:15px;font-weight:600;display:block;letter-spacing:.2px}
+.side-brand .fig-label{margin-top:6px;font-size:9px}
+.navlinks{flex:1;overflow-y:auto;padding:14px 0;scrollbar-width:none}
+.navlinks::-webkit-scrollbar{display:none}
+.navlinks a{
+  display:flex;justify-content:space-between;align-items:center;text-decoration:none;
+  font-size:12px;color:var(--ink-muted);padding:8px 14px 8px 18px;
+  border-left:3px solid transparent;transition:.16s;
+}
+.navlinks a span{font-family:var(--mono);font-size:9px;color:#a49c8e}
+.navlinks a:hover{color:var(--accent);background:rgba(11,95,107,.05)}
+.navlinks a.active{color:var(--accent);border-left-color:var(--accent);background:rgba(11,95,107,.07);font-weight:600}
+.navlinks a.active span{color:var(--accent)}
+.side-foot{border-top:1px solid var(--rule);padding:15px 16px 18px;font-family:var(--mono);font-size:9px;color:var(--ink-muted);line-height:1.8}
+.side-foot b{color:var(--accent);font-weight:500}
+
+/* 主栏 */
+.main{flex:1;min-width:0}
+.paper{max-width:1180px;margin:0 auto;padding:14px 18px 10px}
+
+/* 首屏 Figure */
+.figure-app{display:flex;flex-direction:column;gap:10px;scroll-margin-top:12px}
+#header{
+  background:var(--panel);border:1px solid var(--rule);border-left:3px solid var(--accent);
+  padding:12px 16px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;
+}
+.fig-meta{display:flex;flex-direction:column;gap:2px;min-width:300px}
+#header h1{font-family:var(--serif);font-size:19px;font-weight:600;letter-spacing:-.01em}
+.fig-sub{font-size:11.5px;color:var(--ink-muted);max-width:660px;line-height:1.6}
+.ctrl-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ctrl-group label{font-family:var(--mono);font-size:10.5px;color:var(--ink-muted);letter-spacing:.04em}
+button{
+  background:#fff;color:var(--ink);border:1px solid var(--rule-strong);border-radius:2px;
+  padding:5px 11px;cursor:pointer;font-size:11.5px;font-family:var(--sans);font-weight:600;transition:.15s;
+}
+button:hover{background:var(--paper-2);border-color:var(--accent);color:var(--accent)}
+button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.fig-main{display:flex;gap:10px;min-height:520px;height:calc(100vh - 236px);max-height:720px}
+#chart-panel{flex:1;background:var(--panel);border:1px solid var(--rule);display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.panel-caption{
+  font-family:var(--serif);font-size:12.5px;font-weight:600;color:var(--ink);
+  padding:9px 13px 7px;border-bottom:1px solid var(--rule);
+  display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;
+}
+.panel-caption .cap-note{font-family:var(--sans);font-size:10.5px;font-weight:400;color:var(--ink-muted)}
+#chart-wrap{flex:1;position:relative;min-height:0}
+#scanSvg{width:100%;height:100%;display:block;cursor:crosshair}
+.side-panel{background:var(--panel);border:1px solid var(--rule);padding:10px 12px}
+#right-panel{width:272px;flex:none;display:flex;flex-direction:column;gap:10px;overflow-y:auto}
+#info-panel{flex:1;overflow-y:auto}
+.panel-title{
+  font-family:var(--serif);font-size:12.5px;font-weight:600;color:var(--ink);
+  margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--rule);
+}
+.info-row{display:flex;justify-content:space-between;gap:8px;padding:4px 0;font-size:11.5px;border-bottom:1px dotted var(--rule)}
+.info-row span:first-child{color:var(--ink-muted)}
+.info-val{font-family:var(--mono);font-size:11.5px;color:var(--ink);font-weight:500}
+.ctd-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px dotted var(--rule)}
+.ctd-row .nm{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px}
+.ctd-row .nm i{width:7px;height:7px;display:inline-block;border-radius:50%}
+.ctd-row.isctd .nm{font-weight:500;color:var(--accent)}
+.ctd-row .vv{font-family:var(--mono);font-size:10.5px;color:var(--ink-muted)}
+#footer-bar{background:var(--panel);border:1px solid var(--rule);padding:8px 13px;display:flex;align-items:center;gap:13px}
+#play-btn{width:34px;height:34px;font-size:12px;display:flex;align-items:center;justify-content:center;padding:0;flex:none}
+#speed-group{display:flex;gap:0}
+#speed-group button{border-radius:0;border-right-width:0;padding:4px 9px;font-family:var(--mono);font-size:10.5px;font-weight:500}
+#speed-group button:first-child{border-radius:2px 0 0 2px}
+#speed-group button:last-child{border-radius:0 2px 2px 0;border-right-width:1px}
+#timeline{flex:1;display:flex;flex-direction:column;gap:2px;min-width:160px}
+#slider{width:100%;-webkit-appearance:none;appearance:none;height:3px;background:var(--rule);border-radius:0;outline:none;cursor:pointer}
+#slider::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:var(--accent);border:2px solid #fff;border-radius:50%;cursor:pointer;box-shadow:0 0 0 1px var(--rule-strong)}
+#date-label{font-family:var(--mono);font-size:11px;color:var(--accent);text-align:center;letter-spacing:.02em}
+#fig-footer{font-size:10.5px;color:var(--ink-muted);line-height:1.7;padding:0 2px 2px}
+#fig-footer strong{color:var(--ink);font-weight:600}
+
+/* 正文 section */
+section{padding:42px 0 38px;border-top:1px solid var(--rule);scroll-margin-top:14px}
+.sec-head{margin-bottom:20px}
+h2{font-family:var(--serif);font-size:20px;font-weight:600;letter-spacing:.2px;margin:4px 0 6px}
+.sec-note{font-size:11.5px;color:var(--ink-muted);line-height:1.85;max-width:760px}
+.figcap{font-family:var(--serif);font-size:11px;color:var(--ink-muted);line-height:1.8;margin-top:11px;padding-left:12px;border-left:2px solid var(--rule)}
+.figcap b{color:var(--ink);font-weight:600;margin-right:7px}
+
+.abstract{display:flex;gap:16px;margin:20px 0 12px}
+.ab-label{flex:none;width:64px;font-family:var(--serif);font-size:12px;font-weight:600;color:var(--accent);padding-top:3px}
+.abstract p{flex:1;font-family:var(--serif);font-size:12.5px;line-height:2.0;color:var(--ink-muted);border-left:2px solid var(--accent);padding-left:16px}
+.cite{color:var(--accent);text-decoration:none;font-family:var(--mono);font-size:9px;vertical-align:super}
+.keywords{font-size:10.5px;color:var(--ink-muted);padding-left:80px;margin-bottom:22px}
+.keywords b{color:var(--ink);font-weight:600}
+.live-hint{display:flex;align-items:center;gap:8px;font-size:10.5px;color:var(--ink-muted);padding:2px 0 9px}
+.live-hint .tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.04em;color:var(--accent);border:1px solid var(--accent);padding:2px 7px;white-space:nowrap}
+.live-hint .tag::before{content:"●";font-size:7px;margin-right:5px;vertical-align:1px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--rule);background:var(--panel)}
+.kpi{padding:14px 16px;border-right:1px solid var(--rule)}
+.kpi:last-child{border-right:0}
+.kpi .k{font-family:var(--mono);font-size:9px;letter-spacing:.05em;color:var(--ink-muted);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .v{font-family:var(--serif);font-size:22px;font-weight:600;margin:8px 0 3px;white-space:nowrap}
+.kpi .s{font-size:10px;color:var(--ink-muted);line-height:1.5}
+
+.runswitch{display:inline-flex;border:1px solid var(--rule-strong);background:#fff;padding:2px;gap:2px;margin-top:10px;border-radius:2px}
+.runswitch button{border:0;border-radius:0;padding:5px 12px;font-size:11px}
+.runswitch button.on{background:var(--accent);color:#fff}
+
+.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.stage{background:var(--panel);padding:15px 12px;position:relative;min-height:132px}
+.stage:hover{background:#fffdf8}
+.stage .n{font-family:var(--mono);font-size:9px;color:var(--accent);letter-spacing:.06em}
+.stage .t{font-family:var(--serif);font-size:13px;font-weight:600;margin:9px 0 7px}
+.stage .d{font-size:10px;color:var(--ink-muted);line-height:1.75}
+.connector{position:absolute;right:-6px;top:46%;width:11px;height:1px;background:var(--accent);z-index:2}
+.connector::after{content:"";position:absolute;right:0;top:-2px;border-left:4px solid var(--accent);border-top:2.5px solid transparent;border-bottom:2.5px solid transparent}
+
+.formulas{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.fcard{background:var(--panel);border:1px solid var(--rule);border-left:3px solid var(--accent);padding:16px 18px;position:relative}
+.fcard .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:var(--accent);text-transform:uppercase;margin-bottom:12px}
+.fcard .eq{font-family:var(--serif);font-size:13.5px;line-height:1.9;text-align:center;padding-right:24px}
+.fcard .eq b{color:var(--accent);font-weight:600}
+.fcard .no{position:absolute;right:16px;top:42px;font-family:var(--serif);font-size:11px;color:var(--ink-muted)}
+.fcard .ex{font-size:10px;color:var(--ink-muted);line-height:1.8;margin-top:12px;border-top:1px dotted var(--rule);padding-top:10px}
+
+.ctb-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:12px}
+.quad{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.quad-cell{background:var(--panel);padding:14px 15px;position:relative;min-height:150px;transition:background .15s}
+.quad-cell:hover{background:#fffdf8}
+.quad-cell::before{content:"";position:absolute;left:0;top:0;width:100%;height:3px;background:var(--accent-of)}
+.quad-cell.is-ctd{box-shadow:inset 0 0 0 1px var(--accent)}
+.qc-top{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.qc-name{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--accent-of)}
+.qc-badge{font-family:var(--mono);font-size:8px;letter-spacing:.04em;background:var(--accent);color:#fff;padding:2px 6px;border-radius:2px}
+.qc-irr{font-family:var(--serif);font-size:25px;font-weight:600;margin:10px 0 1px;line-height:1}
+.qc-irr small{font-size:12px;color:var(--ink-muted);margin-left:2px}
+.qc-label{font-size:9.5px;color:var(--ink-muted)}
+.qc-bar{height:3px;background:var(--paper-2);margin:13px 0 10px}
+.qc-bar i{display:block;height:100%;background:var(--accent-of);opacity:.85}
+.qc-foot{display:flex;justify-content:space-between;gap:6px;font-size:9px;color:var(--ink-muted)}
+.qc-foot b{color:var(--ink);font-weight:500;font-family:var(--mono);font-size:10px}
+
+.panel{background:var(--panel);border:1px solid var(--rule);padding:17px}
+.panel-hd{font-family:var(--mono);font-size:9.5px;letter-spacing:.04em;color:var(--ink-muted);margin-bottom:13px;text-transform:uppercase}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead th{border-top:1.5px solid var(--ink);border-bottom:1px solid var(--rule-strong);padding:8px 5px;text-align:right;font-weight:600;font-size:9.5px;white-space:nowrap}
+tbody td{padding:8px 5px;text-align:right;border-bottom:1px dotted var(--rule)}
+tbody tr:last-child td{border-bottom:1.5px solid var(--ink)}
+th:first-child,td:first-child{text-align:left;padding-left:2px}
+tbody tr:hover{background:rgba(11,95,107,.045)}
+tr.isctd td:first-child{color:var(--accent);font-weight:600}
+.tbl-foot{font-size:9.5px;color:var(--ink-muted);line-height:1.8;margin-top:11px}
+
+.boundary-marks{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:10px;color:var(--ink-muted);margin-top:9px}
+.boundary-marks span::before,.boundary-marks button::before{content:"";display:inline-block;width:6px;height:6px;background:var(--caution);transform:rotate(45deg);margin-right:7px}
+.boundary-marks button{border:0;background:transparent;padding:0;color:var(--caution);font-size:10px;font-family:var(--sans);font-weight:400}
+.boundary-marks button:hover{color:var(--accent);text-decoration:underline}
+.scan-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:14px}
+.scan-card{background:var(--panel);padding:11px 13px}
+.scan-card .k{font-size:9.5px;color:var(--ink-muted)}
+.scan-card .v{font-family:var(--serif);font-size:18px;font-weight:600;margin-top:5px;white-space:nowrap}
+
+.gate-axis{position:relative;height:58px;border-bottom:1px solid var(--rule-strong);margin:6px 12px 0}
+.gate-cost{position:absolute;bottom:0;left:0;height:30px;width:0;background:repeating-linear-gradient(45deg,rgba(166,107,43,.16),rgba(166,107,43,.16) 5px,rgba(166,107,43,.06) 5px,rgba(166,107,43,.06) 10px);border-right:1px dashed var(--caution);transition:width 1s cubic-bezier(.2,.8,.2,1)}
+.gate-cost span{position:absolute;right:7px;top:7px;font-family:var(--mono);font-size:9.5px;color:var(--caution);white-space:nowrap}
+.gate-needle{position:absolute;bottom:-7px;left:0;width:2px;height:46px;background:var(--accent);transition:left 1s cubic-bezier(.2,.8,.2,1)}
+.gate-needle::after{content:"";position:absolute;top:-5px;left:-4px;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:7px solid var(--accent)}
+.gate-label{position:absolute;top:2px;font-family:var(--mono);font-size:10px;color:var(--accent);white-space:nowrap;transform:translateX(-50%);transition:left 1s cubic-bezier(.2,.8,.2,1)}
+.gate-ticks{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9.5px;color:var(--ink-muted);margin:9px 12px 0}
+.gate-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:20px}
+.gate-stats .scan-card .v{font-size:13px}
+.gate-verdict{display:flex;gap:12px;align-items:flex-start;margin-top:15px;padding:13px 15px;background:#f8eeec;border-left:3px solid var(--avoid)}
+.gate-verdict.ok{background:#edf5f0;border-left-color:var(--rec)}
+.gate-verdict.extrap{background:#f6f2ea;border-left-color:var(--caution)}
+.gate-verdict.extrap .ic{color:var(--caution)}
+.gate-verdict .ic{font-family:var(--serif);font-size:19px;font-weight:600;color:var(--avoid);line-height:1}
+.gate-verdict.ok .ic{color:var(--rec)}
+.gate-verdict .tx{font-size:11px;line-height:1.9;color:var(--ink-muted)}
+.gate-verdict .tx b{color:var(--ink)}
+
+.strat-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:12px}
+canvas{width:100%;height:320px;display:block}
+.legend{display:flex;gap:13px;flex-wrap:wrap;font-size:9.5px;color:var(--ink-muted);margin-top:10px}
+.legend i{display:inline-block;width:8px;height:8px;margin-right:5px;vertical-align:middle}
+.strat-cards{display:flex;flex-direction:column;gap:8px}
+.scard{border:1px solid var(--rule);background:var(--panel);padding:11px 13px}
+.scard .h{display:flex;justify-content:space-between;align-items:center;font-family:var(--serif);font-size:11.5px;font-weight:600}
+.scard .nums{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:9px;border-top:1px dotted var(--rule);padding-top:8px}
+.scard .nums div span{display:block;font-size:9px;color:var(--ink-muted);margin-bottom:3px}
+.scard .nums div b{font-family:var(--mono);font-size:12px;font-weight:500}
+.strat-note{font-size:10px;color:var(--ink-muted);line-height:1.85;padding:7px 2px 0;border-top:1px solid var(--rule);margin-top:5px}
+
+.verify-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.vcard{background:var(--panel);padding:14px}
+.vcard:hover{background:#fffdf8}
+.vcard .top{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
+.vcard .name{font-family:var(--serif);font-size:11.5px;font-weight:600}
+.vcard .result{font-family:var(--serif);font-size:21px;font-weight:600;margin-top:9px;color:var(--accent)}
+.vcard .desc{font-size:9.5px;color:var(--ink-muted);margin-top:6px;line-height:1.75}
+.pill{font-family:var(--mono);font-size:8px;letter-spacing:.03em;padding:2px 6px;background:#eaf2ee;color:var(--rec);border-radius:2px}
+.pill.amber{background:#f4ecdd;color:var(--caution)}
+.cmds{margin-top:14px;background:#fdfbf6;border:1px solid var(--rule);padding:13px 15px;font-family:var(--mono);font-size:10px;line-height:2.05;color:var(--ink-muted);overflow-x:auto}
+.cmds code{color:var(--accent)}
+.cmds .cmd{display:flex;justify-content:space-between;gap:16px;align-items:center;border-bottom:1px dotted var(--rule)}
+.cmds .cmd:last-child{border-bottom:0}
+.cmds button{border:1px solid var(--rule);background:transparent;color:var(--ink-muted);font-size:9px;padding:2px 8px;font-family:var(--mono);border-radius:2px}
+
+.timeline{position:relative;padding-left:20px}
+.timeline::before{content:"";position:absolute;left:3px;top:6px;bottom:8px;width:1px;background:var(--rule-strong)}
+.tl{position:relative;padding:0 0 18px 4px}
+.tl::before{content:"";position:absolute;left:-21px;top:5px;width:7px;height:7px;background:var(--accent);border:2px solid var(--paper)}
+.tl .date{font-family:var(--mono);font-size:9.5px;color:var(--accent);font-weight:500}
+.tl .text{font-size:11px;margin-top:5px;line-height:1.85;color:var(--ink-muted)}
+.gaps{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.gap{display:flex;gap:9px;padding:11px;border:1px solid var(--rule);background:var(--panel)}
+.gap .no{font-family:var(--mono);font-size:9.5px;color:var(--accent);font-weight:500;min-width:15px}
+.gap .tx{font-size:10px;line-height:1.8;color:var(--ink-muted)}
+.gap .tx b{display:block;margin-bottom:2px;color:var(--ink);font-size:10.5px}
+.evi-note{font-size:10.5px;line-height:1.9;color:var(--ink-muted);margin-top:14px;border-top:1px solid var(--rule);padding-top:12px}
+
+footer{padding:24px 0 36px;color:var(--ink-muted);font-size:10px;line-height:1.9}
+footer .inner{border-top:1px solid var(--rule-strong);padding-top:13px}
+footer .mono{font-family:var(--mono);color:var(--ink-muted)}
+
+/* 反事实扰动对照 */
+.whatif-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:12px}
+.wi-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.wi-chip{font-family:var(--mono);font-size:9.5px;padding:5px 9px;border:1px solid var(--rule);background:#fff;color:var(--ink-muted);border-radius:2px;cursor:pointer;transition:.15s}
+.wi-chip:hover{border-color:var(--accent);color:var(--accent)}
+.wi-chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.wi-row{display:grid;grid-template-columns:1fr repeat(3,minmax(72px,.7fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.wi-row>div{background:var(--panel);padding:9px 11px;font-size:10.5px;min-width:0}
+.wi-row .hd{font-family:var(--mono);font-size:9px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.04em;background:var(--paper-2)}
+.wi-row .lb{font-family:var(--serif);font-weight:600}
+.wi-row .val{font-family:var(--mono);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wi-row .df{font-family:var(--mono);font-size:9px;color:var(--ink-muted);margin-top:2px;white-space:nowrap}
+.wi-flag{margin-top:12px;padding:10px 12px;border-left:3px solid var(--caution);background:#f8f2e8;font-size:10.5px;line-height:1.85;color:var(--ink-muted)}
+.wi-flag b{color:var(--ink)}
+.cf-scale{position:relative;height:8px;background:linear-gradient(90deg,rgba(155,59,46,.18),rgba(42,111,78,.22));border:1px solid var(--rule);margin:24px 0 9px}
+.cf-scale i{position:absolute;top:-6px;width:2px;height:18px;background:var(--accent)}
+.cf-scale i::after{content:attr(data-lbl);position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:9px;color:var(--accent);white-space:nowrap}
+.cf-scale u{position:absolute;top:-4px;width:1px;height:14px;background:var(--rule-strong);text-decoration:none}
+.cf-note{font-size:10.5px;line-height:1.85;color:var(--ink-muted)}
+.cf-note b{color:var(--ink)}
+.defect-alert{margin:12px 0 0;padding:10px 13px;border-left:3px solid var(--caution);background:#fbf3e6;color:var(--ink);font-size:11px;line-height:1.85}
+.defect-alert b{color:var(--caution)}
+.prec-row{display:grid;grid-template-columns:58px 1fr 92px;gap:9px;align-items:center;margin:11px 0}
+.prec-row .nm{font-family:var(--mono);font-size:10px;color:var(--ink)}
+.prec-track{position:relative;height:15px;border-left:1px solid var(--rule-strong)}
+.prec-track .b1{position:absolute;left:0;top:0;height:7px;background:var(--avoid);opacity:.82}
+.prec-track .b2{position:absolute;left:0;top:8px;height:5px;background:var(--rec)}
+.prec-row .vv{font-family:var(--mono);font-size:9.5px;color:var(--ink-muted);text-align:right}
+.prec-legend{display:flex;gap:16px;font-size:9.5px;color:var(--ink-muted);margin-bottom:6px}
+.prec-legend i{display:inline-block;width:14px;height:7px;margin-right:5px;vertical-align:middle}
+.prec-stat{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px dotted var(--rule)}
+.prec-stat .k{font-size:10.5px;color:var(--ink-muted)}
+.prec-stat .v{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--accent)}
+
+/* 证据指纹 */
+.fp-box{margin-top:16px;border:1px solid var(--rule);background:var(--panel)}
+.fp-hd{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 13px;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:9.5px;letter-spacing:.04em;color:var(--ink-muted);text-transform:uppercase}
+.fp-hd button{font-family:var(--mono);font-size:9px;padding:3px 9px}
+.fp-row{display:grid;grid-template-columns:112px 1fr 118px;gap:10px;padding:10px 13px;border-bottom:1px dotted var(--rule);align-items:center}
+.fp-row:last-child{border-bottom:0}
+.fp-row .nm{font-family:var(--serif);font-size:11px;font-weight:600}
+.fp-row .hs{font-family:var(--mono);font-size:9.5px;color:var(--ink-muted);word-break:break-all;line-height:1.6}
+.fp-row .mt{font-family:var(--mono);font-size:9px;color:var(--ink-muted);text-align:right}
+.fp-row .mt b{display:block;color:var(--accent);font-weight:500;font-size:10px}
+
+/* 章节范围标注：核心 / 留痕 / 扩展 */
+#taskmap .sec-head{border-top:2px solid var(--accent);padding-top:15px;margin-top:4px}
+.scope-tag{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:.03em;padding:2px 7px;border:1px solid var(--rule-strong);border-radius:2px;margin-left:9px;vertical-align:middle;color:var(--ink-muted);background:var(--panel)}
+.scope-tag.core{color:var(--accent);border-color:rgba(11,95,107,.35);background:rgba(11,95,107,.07)}
+.scope-tag.proc{color:#7b7365;border-style:dashed}
+.scope-tag.extra{color:#9a6620;border-color:rgba(154,102,32,.35);background:rgba(154,102,32,.07)}
+body.scope-only .scope-extra{display:none!important}
+body.scope-only .scope-proc{opacity:.62}
+body.scope-only .navlinks a[data-scope="extra"]{display:none}
+body.scope-only .scope-tag.core{font-weight:600}
+.taskmap-intro{font-size:11.5px;color:var(--ink-muted);line-height:1.85;max-width:840px}
+.task-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule);margin:18px 0}
+.task-card{background:var(--panel);padding:14px 15px;min-height:128px}
+.task-card .tid{font-family:var(--mono);font-size:9px;color:var(--accent);letter-spacing:.08em}
+.task-card h3{font-family:var(--serif);font-size:13px;font-weight:600;margin:6px 0 8px}
+.task-card .path{font-family:var(--mono);font-size:9px;line-height:1.7;color:var(--ink-muted);word-break:break-all}
+.task-card .st{font-family:var(--mono);font-size:9px;margin-top:9px;padding-top:7px;border-top:1px dotted var(--rule);color:var(--accent)}
+.task-card .st.warn{color:#9a6620}
+.task-note{font-size:11px;color:var(--ink-muted);line-height:1.8;border-left:2px solid var(--accent);padding-left:12px;margin-top:14px}
+.task-note b{color:var(--ink)}
+#scope-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* 导览 */
+.tour-btn{font-family:var(--mono);font-size:9.5px;padding:4px 10px}
+.tourbox{position:fixed;right:18px;bottom:18px;width:300px;background:var(--panel);border:1px solid var(--rule-strong);border-top:3px solid var(--accent);box-shadow:0 10px 30px rgba(28,26,22,.13);padding:13px 14px;z-index:60}
+.tourbox .t{font-family:var(--mono);font-size:9px;color:var(--accent);letter-spacing:.05em}
+.tourbox .x{font-family:var(--serif);font-size:12.5px;font-weight:600;margin:7px 0 5px}
+.tourbox .d{font-size:10.5px;line-height:1.8;color:var(--ink-muted);min-height:38px}
+.tourbox .nav{display:flex;justify-content:space-between;align-items:center;margin-top:11px;padding-top:9px;border-top:1px dotted var(--rule)}
+.tourbox .nav button{font-size:9.5px;padding:3px 8px;font-family:var(--mono)}
+.tourbox .nav span{font-family:var(--mono);font-size:9px;color:var(--ink-muted)}
+
+@media(max-width:1120px){
+  .paper{padding-left:12px;padding-right:12px}
+  .fig-main{flex-direction:column;height:auto;max-height:none;min-height:0}
+  #right-panel{width:100%;display:grid;grid-template-columns:repeat(3,1fr);overflow:visible}
+  #chart-panel{height:440px}
+}
+@media(max-width:980px){
+  .app{display:block}
+  .sidebar{width:100%;height:auto;position:sticky;top:0;flex-direction:row;align-items:center;border-right:0;border-bottom:1px solid var(--rule)}
+  .side-brand{border-bottom:0;padding:11px 14px}
+  .side-brand .fig-label,.side-foot{display:none}
+  .navlinks{display:flex;overflow-x:auto;padding:0;flex:1}
+  .navlinks a{border-left:0;border-bottom:2px solid transparent;padding:15px 11px;white-space:nowrap}
+  .navlinks a.active{border-bottom-color:var(--accent)}
+  .navlinks a span{display:none}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .kpi:nth-child(2){border-right:0}
+  .kpi:nth-child(-n+2){border-bottom:1px solid var(--rule)}
+  .formulas,.ctb-grid,.strat-grid,.whatif-grid{grid-template-columns:1fr}
+  .task-grid{grid-template-columns:repeat(2,1fr)}
+  .verify-grid{grid-template-columns:repeat(2,1fr)}
+  .flow{grid-template-columns:repeat(2,1fr)}
+  .stage:last-child{grid-column:span 2}
+  .abstract{padding-left:0}
+  .keywords{padding-left:0}
+}
+@media(max-width:640px){
+  #right-panel,.scan-cards,.gate-stats,.verify-grid,.gaps{grid-template-columns:1fr}
+  .fp-row{grid-template-columns:1fr;gap:3px}
+  .fp-row .mt{text-align:left}
+  .tourbox{right:8px;left:8px;bottom:8px;width:auto}
+  .flow{grid-template-columns:1fr}
+  .stage:last-child{grid-column:span 1}
+  .quad{grid-template-columns:1fr}
+  .task-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+<aside class="sidebar">
+  <div class="side-brand"><b>CTD 研究台</b><div class="fig-label">Research Dashboard</div></div>
+  <nav class="navlinks">
+    <a href="#hero">动态总览 <span>00</span></a>
+    <a href="#summary">研究摘要 <span>01</span></a>
+    <a href="#pipeline">研究链路 <span>02</span></a>
+    <a href="#formula">定价框架 <span>03</span></a>
+    <a href="#ctd">CTD 判定 <span>04</span></a>
+    <a href="#scan">情景扫描 <span>05</span></a>
+    <a href="#gate">可执行边界 <span>06</span></a>
+    <a href="#strategy">策略对照 <span>07</span></a>
+    <a href="#exante">事前持有 <span>08</span></a>
+    <a href="#evidence">数据口径 <span>09</span></a>
+  </nav>
+  <div class="side-foot">RESEARCH NOTE<br><b>QS-CTD-2026-11</b><br>as_of <span id="sideAsOf">—</span></div>
+</aside>
+
+<main class="main">
+<div class="paper">
+
+<div class="figure-app" id="hero">
+  <div id="header">
+    <div class="fig-meta">
+      <div class="fig-label">Figure · Dynamic quadrant</div>
+      <h1>国债期货 CTD / IRR / BNOC 研究复现</h1>
+      <div class="fig-sub">横轴：收益率平移（bp）；纵轴：隐含回购利率（%）。曲线为四只情景券，竖线为当前档位，阴影标示 CTD 切换区间。全部数值来自冻结 run 产物。</div>
+    </div>
+    <div class="ctrl-group"><label>DATA</label><span id="figDataSpan" class="mono small">—</span><button id="tour-btn" class="tour-btn" title="按章节导览">导览</button></div>
+  </div>
+
+  <div class="fig-main">
+    <div id="chart-panel">
+      <div class="panel-caption"><span>(a) 四券 IRR 随收益率平移</span><span class="cap-note">悬停读数 · 实线 = 情景券 IRR · 阴影 = CTD 切换区间</span></div>
+      <div id="chart-wrap"><svg id="scanSvg" viewBox="0 0 900 420" preserveAspectRatio="xMidYMid meet" role="img" aria-label="四券 IRR 随收益率平移曲线"></svg></div>
+    </div>
+    <div id="right-panel">
+      <div class="side-panel">
+        <div class="panel-title">(b) CTD 判定</div>
+        <div id="heroQuad"></div>
+      </div>
+      <div class="side-panel" id="info-panel">
+        <div class="panel-title">(c) 可执行边界</div>
+        <div id="heroGate"></div>
+      </div>
+      <div class="side-panel">
+        <div class="panel-title">(e) 运行配置</div>
+        <div id="heroRun"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="footer-bar">
+    <button id="play-btn" title="播放 / 暂停">▶</button>
+    <div class="ctrl-group"><label>SPEED</label><div id="speed-group">
+      <button data-spd="800" class="active">0.8s</button><button data-spd="300">0.3s</button><button data-spd="80">0.08s</button>
+    </div></div>
+    <div id="timeline"><input type="range" id="slider" min="0" max="20" value="10"><div id="date-label">—</div></div>
+  </div>
+  <div id="fig-footer"><strong>数据来源：</strong>交易所公开规则与冻结研究快照 · 研究复现，不构成投资建议。</div>
+</div>
+
+
+<section id="summary">
+  <div class="sec-head"><div class="fig-label">Section 01 · Abstract </div><h2>研究摘要</h2></div>
+  <div class="abstract">
+    <div class="ab-label">摘要</div>
+    <p>本研究在冻结快照上复现最便宜可交割券（CTD）、隐含回购利率（IRR）与净基差（BNOC）的判定链路，并在 <span class="mono" data-dyn="nScenarios"></span> 组收益率—融资情景中对照买入持有、简单对冲与研究方案。受数据前提限制，当前结果为条件化判断：缺少与数据日期一致的现券成交价、完整可交割券清单与债券借贷费率，账面 IRR 空间不构成可执行套利<a href="#evidence" class="cite">[1]</a>。<span data-dyn="comparisonSentence"></span></p>
+  </div>
+  <div class="keywords"><b>关键词</b>　CTD；隐含回购利率；净基差；转换因子；交割期权；可执行边界</div>
+  <div class="live-hint"><span class="tag">情景联动</span>拖动首屏滑块或点击播放，下方判定与全页图表会同步切换到对应的收益率档位</div>
+  <div class="kpis" id="kpis"></div>
+</section>
+
+<section id="pipeline">
+  <div class="sec-head"><div class="fig-label">Figure 1 · Pipeline </div><h2>从输入快照到结论的链路</h2>
+    <p class="sec-note">每一级均落盘产物。数据缺口发生在最上游，后续所有结论因此收敛为条件化判断，而非市场判断。</p></div>
+  <div class="flow" id="flow"></div>
+  <div class="figcap"><b>图 1</b>　五级链路。悬停可查看每一级的具体处理；数据缺口位于最上游，下游结论因此为条件化判断。</div>
+</section>
+
+<section id="formula">
+  <div class="sec-head"><div class="fig-label">Figure 2 · Pricing framework </div><h2>四个式子撑起全部判定</h2>
+    <p class="sec-note">账面偏差不等于无风险套利：CTD 可切换、交割结算价由交易所规则产生、交割期权具有正价值。</p></div>
+  <div class="formulas">
+    <div class="fcard"><div class="lbl">Invoice price / 发票价格</div>
+      <div class="eq">发票价 = <b>交割结算价 × CF</b> + 应计利息</div><div class="no">(1)</div>
+      <div class="ex">CF 为转换因子，将不同券折算至 3% 名义标准券。本快照采用声明式参考 CF，非交易所公布值。</div></div>
+    <div class="fcard"><div class="lbl">Implied repo rate / 隐含回购利率</div>
+      <div class="eq">IRR = (<b>发票价 + 票息再投资 − 全价</b>) / 全价 × 365 / d</div><div class="no">(2)</div>
+      <div class="ex">买入现券、持有至交割并按期货价卖出的年化收益率；d 为结算日至交割日天数。</div></div>
+    <div class="fcard"><div class="lbl">BNOC / 净基差</div>
+      <div class="eq">BNOC = <b>Gross Basis − Net Carry</b></div><div class="no">(3)</div>
+      <div class="ex">Gross Basis = 现券净价 − 期货价 × CF；Net Carry = 持有期票息收益 − 融资成本。BNOC 越低越可能成为 CTD。</div></div>
+    <div class="fcard"><div class="lbl">Execution gate / 可执行闸门</div>
+      <div class="eq">可执行 ⟺ <b>IRR − 融资利率 &gt; 全成本带</b></div><div class="no">(4)</div>
+      <div class="ex">全成本含交易、交割、冲击与容量约束折算。IRR 高于融资利率只说明账面有空间，不等于扣成本后仍为正。</div></div>
+  </div>
+</section>
+
+<section id="ctd">
+  <div class="sec-head"><div class="fig-label">Figure 3 · CTD determination </div><h2>谁是最便宜可交割券</h2><span class="runswitch" id="runswitch"></span>
+    <p class="sec-note">四只情景券按 IRR 由高到低排列；IRR 最高与 BNOC 最低两种口径须给出同一答案。</p></div>
+  <div class="ctb-grid">
+    <div>
+      <div class="panel-hd">图 3A · 四券 IRR 象限（%）</div>
+      <div class="quad" id="bars"></div>
+      <div class="figcap"><b>图 3</b>　<span id="ctdNote"></span></div>
+    </div>
+    <div class="panel">
+      <div class="panel-hd">表 1 · 逐券数值 / 每百元面值</div>
+      <table><thead><tr><th>券</th><th>CF</th><th>净价</th><th>毛基差</th><th>净持有</th><th>BNOC</th><th>IRR %</th></tr></thead>
+      <tbody id="ctbBody"></tbody></table>
+      <div class="tbl-foot" id="ctbFoot"></div>
+      <div class="figcap"><b>表 1</b>　同一快照下四券的定价对照。CF 为声明式参考值，不用于实盘交割结算。</div>
+    </div>
+  </div>
+</section>
+
+<section id="scan">
+  <div class="sec-head"><div class="fig-label">Figure 4 · Scenario scan </div><h2>收益率一动，CTD 就换</h2>
+    <p class="sec-note">曲线为四只券的 IRR 随收益率平移的变化，阴影为 CTD 切换区间。拖动首屏滑块，竖线与下方读数同步定位到该档位；点击切换标签可直接跳到 CTD 换券点。</p></div>
+  <div class="panel">
+    <div class="panel-caption"><span>(f) <span data-dyn="nYieldBps"></span> 档收益率平移 · IRR 曲线</span><span class="cap-note" id="scanStatus">—</span></div>
+    <svg id="detailScanSvg" viewBox="0 0 900 320" style="width:100%;height:auto;display:block" role="img" aria-label="IRR 随收益率平移变化曲线"></svg>
+    <div class="boundary-marks" id="boundaryMarks"></div>
+    <div class="scan-cards" id="scanCards"></div>
+    <div class="figcap"><b>图 4</b>　收益率平移 <span data-dyn="dyRange"></span> 的 IRR 曲线。切换点来自 <span data-dyn="nYieldBps"></span> 档网格估计，其分辨率已在下方标注。</div>
+  </div>
+</section>
+
+<section id="gate">
+  <div class="sec-head"><div class="fig-label">Figure 5 · Execution boundary </div><h2>空间够不够扣成本</h2>
+    <p class="sec-note">斜纹带为全成本，竖针为 IRR 相对融资利率的空间。针未越过带右沿，则不给出交易指令。</p></div>
+  <div class="panel">
+    <div class="gate-axis">
+      <div class="gate-cost" id="gateCost"><span id="gateCostLbl"></span></div>
+      <div class="gate-label" id="gateLbl"></div>
+      <div class="gate-needle" id="gateNeedle"></div>
+    </div>
+    <div class="gate-ticks" id="gateTicks"></div>
+    <div class="gate-stats" id="gateStats"></div>
+    <div class="gate-verdict" id="gateVerdict"></div>
+    <div class="figcap"><b>图 5</b>　正向执行的成本闸门。判定为否时，反向腿还需借券，而借券费率无免费公开源。</div>
+  </div>
+</section>
+
+
+
+<section id="strategy">
+  <div class="sec-head"><div class="fig-label">Figure 6 · Strategy comparison </div><h2><span data-dyn="nScenarios"></span> 个情景里，三种做法差多少</h2>
+    <p class="sec-note">横轴为收益率平移档位。参数为情景网格回放，不是历史时间序列；砖红代表正 P&amp;L，绿色代表负 P&amp;L（A 股口径）。</p></div>
+  <div class="strat-grid">
+    <div class="panel">
+      <canvas id="scatter" role="img" aria-label="三策略 P&L 散点图"></canvas>
+      <div class="legend">
+        <span><i style="background:#2f5f8a"></i>A 买入持有</span>
+        <span><i style="background:#b06d24"></i>B 简单对冲</span>
+        <span><i style="background:#b33a2b"></i>C 研究方案（执行）</span>
+        <span><i style="background:#8a8376"></i>C 跳过</span>
+      </div>
+      <div class="figcap"><b>图 6</b>　三策略在 <span data-dyn="gridDims"></span> 网格上的 P&amp;L 分布；C 方案在成本不足时主动跳过，跳过点以灰色标出。</div>
+    </div>
+    <div>
+      <div class="panel-hd">表 2 · 情景汇总</div>
+      <div class="strat-cards" id="stratCards"></div>
+      <div class="strat-note" id="stratNote"></div>
+    </div>
+  </div>
+</section>
+
+<section id="exante">
+  <div class="sec-head"><div class="fig-label">Figure 7 · Ex-ante holding </div><h2>只能看见结算日信息时，能不能拿住交割最优券</h2>
+    <p class="sec-note">建仓时只能看到结算日的曲线与期货价，因此可交割券的排序在那一刻就已确定。此后曲线移动可能让排序发生变化——那部分不是可以事后追踪的收益，而是持仓要承担的风险。</p></div>
+  <div class="strat-grid">
+    <div class="panel">
+      <canvas id="ctdswitch" role="img" aria-label="事前持仓券与事后最优交割券对照图"></canvas>
+      <div class="legend">
+        <span><i style="background:#2f5f8a"></i>事前持仓券仍是事后最优</span>
+        <span><i style="background:#b33a2b"></i>事后最优已换成另一只券</span>
+      </div>
+      <div class="figcap"><b>图 7</b>　横轴为收益率平移档位，纵轴为融资利率；红色表示该情景下事后最优交割券已不是建仓时持有的那一只。</div>
+    </div>
+    <div>
+      <div class="panel-hd">表 3 · 事前持有口径下的切换暴露</div>
+      <div class="strat-cards" id="switchCards"></div>
+      <div class="strat-note" id="switchNote"></div>
+    </div>
+  </div>
+</section>
+
+
+<section id="evidence">
+  <div class="sec-head"><div class="fig-label">Section 08 · Scope &amp; caveats</div><h2>数据口径与适用边界</h2>
+    <p class="sec-note">本页结论基于公开规则与冻结研究快照。受数据前提限制，结果仅用于方法对照，不构成投资建议或可交易信号。</p></div>
+  <div class="ctb-grid">
+    <div class="panel"><div class="panel-hd">表 4 · 数据前提与限制</div><div class="gaps" id="gaps"></div></div>
+    <div class="panel">
+      <div class="panel-hd">口径说明</div>
+      <div class="evi-note">两组数据口径下，IRR − 融资空间均小于全成本带；<b>账面空间不构成套利机会</b>。本页所有数值为研究快照回放，不代表实盘可执行收益。</div>
+    </div>
+  </div>
+</section>
+
+<footer><div class="inner" id="footer"></div></footer>
+
+</div>
+</main>
+</div>
+
+<script>
+const D = __PAYLOAD__;
+
+/* 页面上的每个研究数值都只有一个来源：payload.dynamic（由 run 产物现算）。
+   模板不写死任何研究结论数值，数据一改，这里随之更新。 */
+function dynText(t){
+  return String(t).replace(/\{(\w+)\}/g,(m,k)=>
+    (D.dynamic && D.dynamic[k]!=null) ? String(D.dynamic[k]) : m);
+}
+function applyDynamics(){
+  document.querySelectorAll('[data-dyn]').forEach(el=>{
+    const k=el.getAttribute('data-dyn');
+    if(D.dynamic && D.dynamic[k]!=null) el.textContent=String(D.dynamic[k]);
+  });
+}
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const fmt = (v,d=2) => (v===null||v===undefined||Number.isNaN(Number(v))) ? '—' : Number(v).toFixed(d);
+const COLORS = {'SCEN-A':'#2f5f8a','SCEN-B':'#b06d24','SCEN-C':'#b33a2b','SCEN-D':'#1b7a5a'};
+let runKey = 'base';
+let scanIndex = 10, playing = false, timer = null, playDelay = 800;
+const run = () => D[runKey];
+const curScan = () => run().yieldScan[scanIndex];
+// 融资假设取自该 run 自己的快照（注入值），不在页面写死；不同 run 可不同
+const repoPct = () => run().repoRatePct;
+// 外推判定以本 run 基准档 IRR 为参照：偏离超过 2 个百分点即视为模型外推
+const EXTRAP_DEV_BP = 200;
+const isExtrap = c => Math.abs(c.irrPct - run().baseIrrPct) * 100 > EXTRAP_DEV_BP;
+
+// 成本随收益率档位变化（strategy 网格按 bp 存，成本与融资档无关）；缺档时回退基准值
+function costAtBp(r, bp){
+  const row = r.strategy.find(x => Math.abs(x[0]-bp) < 1e-6);
+  return row ? row[7] : r.boundary.costBp;
+}
+// 首屏口径：固定融资假设，只替换当前档 IRR（与 boundary.spreadBp 同口径）
+function spreadAtScan(cur){ return (cur.irrPct - repoPct()) * 100; }
+function rankedBonds(cur){
+  return run().ctb.map(x => ({...x, irrPct: cur.byBond[x.bond] ?? x.irrPct}))
+                  .sort((a,b) => b.irrPct - a.irrPct);
+}
+
+function el(tag, cls, html){ const x=document.createElement(tag); if(cls)x.className=cls; if(html!==undefined)x.innerHTML=html; return x; }
+
+function copyText(text, btn){
+  const done=()=>{ const old=btn.textContent; btn.textContent='已复制'; setTimeout(()=>btn.textContent=old,1200); };
+  if(navigator.clipboard && window.isSecureContext){ navigator.clipboard.writeText(text).then(done); return; }
+  const ta=el('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); done(); }catch(e){ btn.textContent='复制失败'; setTimeout(()=>btn.textContent='复制',1200); }
+  ta.remove();
+}
+
+function animateNumber(node, target, digits=2, suffix=''){
+  const start = performance.now(), from = 0, dur = 700;
+  function step(t){
+    const p = Math.min(1,(t-start)/dur), e = 1-Math.pow(1-p,3);
+    node.textContent = (from+(target-from)*e).toFixed(digits)+suffix;
+    if(p<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function renderHero(){
+  const r = run(), b = r.boundary;
+  const invalid = b.invalidatedBy && b.invalidatedBy.length > 0;
+  $('#sideAsOf').textContent = D.meta.asOf;
+  $('#figDataSpan').textContent = `${D.meta.asOf}  ·  ${r.label}  ·  ${r.yieldScan.length}×${Object.keys(r.yieldScan[0].byBond).length} 情景`;
+  $('#kpis').innerHTML = `
+    <div class="kpi"><div class="k">CTD · 最便宜可交割券</div><div class="v mono" id="kpiCtd">—</div><div class="s" id="kpiCtdSub"> Irr 最高 / BNOC 最低一致判定</div></div>
+    <div class="kpi"><div class="k">IRR − 融资利率</div><div class="v mono" id="kpiSpread">—</div><div class="s" id="kpiSpreadSub">账面空间，不等于利润</div></div>
+    <div class="kpi"><div class="k">全成本带</div><div class="v mono" id="kpiCost">—</div><div class="s">交易 + 交割 + 冲击 + 容量折算</div></div>
+    <div class="kpi"><div class="k">正向可执行</div><div class="v mono" id="kpiExec" style="font-size:19px">${invalid?'否 · 口径待统一':(b.forwardExecutable?'是':'否')}</div><div class="s" id="kpiExecSub">${invalid?'两组数据口径不一致':(b.forwardExecutable?'空间覆盖成本':'空间小于成本')}</div></div>`;
+  updateKpis();
+}
+// 首屏 KPI 随情景刷新；首次渲染走数字动画，之后拖动直接赋值避免闪烁
+function updateKpis(animate=false){
+  const r = run(), c = curScan(), b = r.boundary;
+  const spread = spreadAtScan(c), cost = costAtBp(r, c.bp);
+  const score = (node, val, digits=2, suffix=' bp') => {
+    if(animate) animateNumber(node, val, digits, suffix);
+    else node.textContent = fmt(val, digits) + suffix;
+  };
+  $('#kpiCtd').textContent = c.ctd;
+  $('#kpiCtdSub').textContent = c.agree
+    ? `当前 ${fmt(c.bp,0)}bp · IRR 与 BNOC 口径一致`
+    : `当前 ${fmt(c.bp,0)}bp · 双口径出现分歧`;
+  score($('#kpiSpread'), spread, 2);
+  score($('#kpiCost'), cost, 2);
+  $('#kpiSpreadSub').textContent = isExtrap(c) ? '极端平移档 · 模型外推区' : '账面空间，不等于利润';
+  // 可执行结论只认冻结基准判定，情景切换只改数值与说明，不擅自放大风控结论
+  const invalid = b.invalidatedBy && b.invalidatedBy.length;
+  const verdict = invalid?'否 · 口径待统一':(b.forwardExecutable?'是':'否');
+  $('#kpiExec').textContent = verdict;
+  const gap = spread - cost;
+  $('#kpiExecSub').textContent = invalid ? '两组数据口径不一致'
+    : isExtrap(c) ? '极端档外推 · 见可执行边界'
+    : gap >= 0 ? '基准判定为否 · 账面空间不下结论'
+    : '基准判定为否 · 空间小于成本';
+}
+
+function renderSidePanels(){
+  const r = run();
+  $('#heroRun').innerHTML = [
+    ['数据日期', D.meta.asOf],
+    ['数据口径', r.label],
+    ['期货结算价', fmt(r.futuresPrice)],
+    ['交割日', r.deliveryDate]
+  ].map(([k,val])=>`<div class="info-row"><span>${k}</span><span class="info-val">${val}</span></div>`).join('');
+  updateHeroQuad(); updateHeroGate();
+}
+function updateHeroQuad(){
+  const c = curScan();
+  $('#heroQuad').innerHTML = rankedBonds(c).map(x=>`
+    <div class="ctd-row ${x.bond===c.ctd?'isctd':''}">
+      <span class="nm"><i style="background:${COLORS[x.bond]||'#8a8376'}"></i>${x.bond}${x.bond===c.ctd?' · CTD':''}</span>
+      <span class="vv">IRR ${fmt(x.irrPct,3)}%　BNOC ${fmt(x.bond===c.ctd?c.bnoc:x.bnoc,4)}</span></div>`).join('');
+}
+function updateHeroGate(){
+  const r = run(), c = curScan(), b = r.boundary;
+  const spread = spreadAtScan(c), cost = costAtBp(r, c.bp), gap = spread - cost;
+  const invalid = b.invalidatedBy && b.invalidatedBy.length;
+  const bpTxt = (c.bp>0?'+':'') + fmt(c.bp,0) + 'bp';
+  $('#heroGate').innerHTML = [
+    ['当前情景', bpTxt],
+    ['IRR − 融资', fmt(spread,2)+' bp'],
+    ['全成本带', fmt(cost,2)+' bp'],
+    ['空间缺口', fmt(gap,2)+' bp'],
+    ['容量约束', b.capacity.binding_constraint],
+    ['结论口径', invalid?'待统一 · 不作市场结论':(isExtrap(c)?'外推区 · 不判可执行':(gap>=0?'空间覆盖成本':'空间小于成本'))]
+  ].map(([k,val])=>`<div class="info-row"><span>${k}</span><span class="info-val">${val}</span></div>`).join('');
+}
+
+function renderFlow(){
+  const stages = [
+    ['01','输入快照','冻结的券条款、CF、成本与容量；官方锚定版只替换期货价与交割日'],
+    ['02','债券定价','现金流折现得净价/全价，算应计、发票价、毛基差与净持有'],
+    ['03','CTD / IRR / BNOC','四券排序，IRR 与 BNOC 双口径交叉核对 CTD'],
+    ['04', D.dynamic.nScenarios + ' 情景回放','收益率 × 融资利率网格；三策略 P&L 与 CTD 切换边界'],
+    ['05','结论与边界','输出可执行边界与数据前提，条件化呈现，不输出交易指令']
+  ];
+  $('#flow').innerHTML = stages.map((s,i)=>`
+    <div class="stage"><div class="n">${s[0]}</div><div class="t">${s[1]}</div><div class="d">${s[2]}</div>
+    ${i<stages.length-1?'<span class="connector"></span>':''}</div>`).join('');
+}
+
+function renderCTB(){
+  const r = run(), c = curScan(), rows = rankedBonds(c);
+  const lo = Math.min(...rows.map(x=>x.irrPct)) - 2, hi = Math.max(...rows.map(x=>x.irrPct)) + 2;
+  $('#bars').innerHTML = rows.map(x=>{
+    const pct = (x.irrPct-lo)/(hi-lo)*100;
+    const isCtd = x.bond === c.ctd;
+    const col = COLORS[x.bond] || '#8a8376';
+    return `<div class="quad-cell ${isCtd?'is-ctd':''}" style="--accent-of:${col}">
+      <div class="qc-top"><span class="qc-name">${x.bond}</span>${isCtd?'<span class="qc-badge">CTD</span>':''}</div>
+      <div class="qc-irr mono">${fmt(x.irrPct,3)}<small>%</small></div>
+      <div class="qc-label">隐含回购利率 IRR</div>
+      <div class="qc-bar"><i style="width:${Math.max(0,pct).toFixed(1)}%"></i></div>
+      <div class="qc-foot"><span>CF <b>${fmt(x.cf,4)}</b></span><span>BNOC <b>${fmt(x.bond===c.ctd?c.bnoc:x.bnoc,4)}</b></span></div>
+    </div>`;
+  }).join('');
+  $('#ctbBody').innerHTML = rows.map(x=>`
+    <tr class="${x.bond===c.ctd?'isctd':''}">
+      <td>${x.bond}</td><td class="mono">${fmt(x.cf,4)}</td><td class="mono">${fmt(x.clean,3)}</td>
+      <td class="mono">${fmt(x.grossBasis,4)}</td><td class="mono">${fmt(x.netCarry,4)}</td>
+      <td class="mono">${fmt(x.bond===c.ctd?c.bnoc:x.bnoc,4)}</td><td class="mono">${fmt(x.irrPct,3)}</td></tr>`).join('');
+  const ctd = rows.find(x=>x.bond===c.ctd);
+  $('#ctdNote').innerHTML = `<b>${c.ctd}</b> 在 ${fmt(c.bp,0)}bp 情景下 IRR 最高（<span class="mono">${fmt(ctd?ctd.irrPct:0,3)}%</span>），${c.agree?'与 BNOC 最低口径一致':'BNOC 口径指向 '+c.ctdBnoc}；与次优券相差
+    <span class="mono">${fmt(c.marginBp,2)} bp</span>。${isExtrap(c)?'该档位属模型外推区，仅用于观察换券边界。':''}`;
+  $('#ctbFoot').textContent = `应计利息：结算日 ${fmt(ctd?ctd.accruedSettle:0,4)} / 交割日 ${fmt(ctd?ctd.accruedDelivery:0,4)}。`;
+}
+
+function scanBounds(){
+  const all = run().yieldScan.flatMap(x=>Object.values(x.byBond));
+  return [Math.min(...all)-0.4, Math.max(...all)+0.4];
+}
+function buildScanSvg(W,H){
+  const r = run(), pts = r.yieldScan, L=52,R=14,T=16,B=32;
+  const [lo,hi] = scanBounds();
+  const X = bp => L + (bp+100)/200*(W-L-R);
+  const Y = v => T + (hi-v)/(hi-lo)*(H-T-B);
+  let svg = `<line x1="${L}" y1="${T}" x2="${L}" y2="${H-B}" stroke="#8a8376"/>
+    <line x1="${L}" y1="${H-B}" x2="${W-R}" y2="${H-B}" stroke="#8a8376"/>`;
+  for(let i=0;i<=4;i++){
+    const v = lo+(hi-lo)*i/4, y=Y(v);
+    svg += `<line x1="${L}" y1="${y}" x2="${W-R}" y2="${y}" stroke="rgba(28,26,22,.07)"/>
+      <text x="${L-8}" y="${y+4}" fill="#5c574e" font-size="10" text-anchor="end" font-family="IBM Plex Mono,monospace">${v.toFixed(1)}</text>`;
+  }
+  const bonds = Object.keys(pts[0].byBond);
+  bonds.forEach(b=>{
+    const d = pts.map((p,i)=>`${i?'L':'M'}${X(p.bp).toFixed(1)},${Y(p.byBond[b]).toFixed(1)}`).join(' ');
+    svg += `<path d="${d}" fill="none" stroke="${COLORS[b]||'#8a8376'}" stroke-width="1.8" opacity="${b===r.boundary.ctd?1:.66}"/>`;
+  });
+  const cur = pts[scanIndex];
+  svg += `<line x1="${X(cur.bp)}" y1="${T}" x2="${X(cur.bp)}" y2="${H-B}" stroke="#1c1a16" stroke-width="1" stroke-dasharray="4 3" opacity=".6"/>`;
+  bonds.forEach(b=>{
+    svg += `<circle cx="${X(cur.bp)}" cy="${Y(cur.byBond[b])}" r="4.2" fill="${COLORS[b]||'#8a8376'}" stroke="#faf8f3" stroke-width="1.8"/>`;
+  });
+  r.switches.forEach(s=>{
+    const a = s.bracket[0]*10000, z = s.bracket[1]*10000;
+    svg += `<rect x="${X(a)}" y="${T}" width="${Math.max(2,X(z)-X(a))}" height="${H-T-B}" fill="rgba(176,109,36,.10)"/>`;
+  });
+  [ -100,-50,0,50,100 ].forEach(bp=>{
+    svg += `<text x="${X(bp)}" y="${H-11}" fill="#5c574e" font-size="10" text-anchor="middle" font-family="IBM Plex Mono,monospace">${bp>0?'+':''}${bp}bp</text>`;
+  });
+  return svg;
+}
+function renderScan(){
+  $('#scanSvg').innerHTML = buildScanSvg(900,420);
+  $('#detailScanSvg').innerHTML = buildScanSvg(900,320);
+  const r=run(), cur=r.yieldScan[scanIndex];
+  $('#slider').value = scanIndex;
+  const label = `收益率平移 ${cur.bp>0?'+':''}${cur.bp.toFixed(0)}bp · CTD ${cur.ctd} · IRR ${fmt(cur.irrPct,3)}%`;
+  $('#date-label').textContent = label;
+  $('#scanStatus').textContent = label;
+  $('#play-btn').textContent = playing ? '❚❚' : '▶';
+  $('#boundaryMarks').innerHTML = r.switches.map(s=>{
+    const bp=Math.round(s.boundary_estimate*10000);
+    return `<button class="bm" data-bp="${bp}" title="跳到该档位">${s.from_ctd} → ${s.to_ctd} @ ${bp}bp 附近（分辨率 ${(s.resolution*10000).toFixed(0)}bp）</button>`;
+  }).join('') || '<span>本区间未发现 CTD 切换</span>';
+  $$('#boundaryMarks button.bm').forEach(b=>b.addEventListener('click',()=>{
+    if(timer){clearInterval(timer);timer=null;} playing=false;
+    scanIndex=Math.max(0,Math.min(r.yieldScan.length-1,Math.round((Number(b.dataset.bp)+100)/10)));
+    syncToScan();
+    $('#scan').scrollIntoView({behavior:'smooth',block:'start'});
+  }));
+  $('#scanCards').innerHTML = [
+    ['当前 CTD', cur.ctd, 'var(--accent)'],
+    ['CTD 的 IRR', fmt(cur.irrPct,3)+'%', 'var(--ink)'],
+    ['BNOC', fmt(cur.bnoc,4), 'var(--ink)'],
+    ['与次优券差距', fmt(cur.marginBp,1)+' bp', 'var(--accent)']
+  ].map(([k,v,c])=>`<div class="scan-card"><div class="k">${k}</div><div class="v mono" style="color:${c}">${v}</div></div>`).join('');
+}
+
+function renderGate(){
+  const r = run(), c = curScan(), b = r.boundary, invalid = b.invalidatedBy && b.invalidatedBy.length;
+  const spread = spreadAtScan(c), cost = costAtBp(r, c.bp), gap = spread - cost;
+  const max = Math.max(cost*1.35, Math.abs(spread)*1.12, 10);
+  const costPct = Math.min(100, cost/max*100), needlePct = Math.min(100, spread/max*100);
+  $('#gateCost').style.width = costPct+'%';
+  $('#gateCostLbl').textContent = `全成本 ${fmt(cost,1)}bp`;
+  $('#gateNeedle').style.left = needlePct+'%';
+  $('#gateLbl').style.left = needlePct+'%';
+  $('#gateLbl').textContent = `空间 ${fmt(spread,1)}bp`;
+  $('#gateTicks').innerHTML = [0,.25,.5,.75,1].map(f=>`<span class="mono">${fmt(max*f,0)}bp</span>`).join('');
+  $('#gateStats').innerHTML = [
+    ['当前情景', (c.bp>0?'+':'')+fmt(c.bp,0)+'bp'],
+    ['IRR−融资', fmt(spread,2)+'bp'],['全成本带',fmt(cost,2)+'bp'],
+    ['缺口', fmt(gap,2)+'bp'],['容量约束', b.capacity.binding_constraint]
+  ].map(([k,v])=>`<div class="scan-card"><div class="k">${k}</div><div class="v mono" style="font-size:13px">${v}</div></div>`).join('');
+  const box = $('#gateVerdict');
+  if(invalid){
+    box.className='gate-verdict';
+    box.innerHTML = `<div class="ic">!</div><div class="tx"><b>口径待统一 · 不作市场判定</b><br>
+      真实期货结算价 <span class="mono">${fmt(r.futuresPrice)}</span> 配声明式现券，<span class="mono">${fmt(D.dynamic.priceGap,2)}</span> 元价差被年化为
+      <span class="mono">${fmt(spread,0)}bp</span> 虚假基差，风控闸门全部打开。这不是套利机会；
+      <span class="mono">${b.invalidatedBy.join('、')}</span>。</div>`;
+  } else if(isExtrap(c)){
+    box.className='gate-verdict extrap';
+    box.innerHTML = `<div class="ic">◌</div><div class="tx"><b>模型外推区 · 不据此判断可执行性</b><br>
+      当前 ${fmt(c.bp,0)}bp 情景下 CTD 的 IRR 达 <span class="mono">${fmt(c.irrPct,3)}%</span>，已超出基础情景的合理平移范围。
+      此处仅用于观察 CTD 换券，不代表实际可执行空间，也不构成交易信号。</div>`;
+  } else if(gap<0){
+    box.className='gate-verdict';
+    box.innerHTML = `<div class="ic">×</div><div class="tx"><b>不可执行：空间比成本少 ${fmt(-gap,2)}bp</b><br>
+      IRR 高于融资利率只说明账面有空间。扣掉交易、交割、冲击与容量成本后为负，因此不给出交易指令。
+      反向腿还需借券，而借券费率无免费公开源。</div>`;
+  } else {
+    box.className='gate-verdict ok';
+    box.className='gate-verdict extrap';
+    box.innerHTML = `<div class="ic">◌</div><div class="tx"><b>账面空间覆盖成本 · 不下交易结论</b><br>
+      当前 ${fmt(c.bp,0)}bp 情景的账面空间 <span class="mono">${fmt(gap,2)}bp</span> 高于成本带，但缺少同日现券成交价、
+      借券费率与交割择券权建模，CTD 处于切换敏感区，不能据此判定可执行。</div>`;
+  }
+}
+
+let scatterToken = 0;
+function drawScatter(){
+  const token = ++scatterToken;
+  const canvas = $('#scatter'), dpr = window.devicePixelRatio||1;
+  const W = canvas.clientWidth, H = 320;
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H);
+  const L=44,R=12,T=14,B=30, pw=W-L-R, ph=H-T-B;
+  const rows = run().strategy;
+  const ys = rows.flatMap(r=>[r[2],r[3],r[4]]);
+  const ymin=Math.min(...ys)-.5, ymax=Math.max(...ys)+.5;
+  const X = bp => L+(bp+100)/200*pw, Y = v => T+(ymax-v)/(ymax-ymin)*ph;
+  ctx.strokeStyle='rgba(28,26,22,.085)'; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const y=T+ph*i/4; ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(W-R,y); ctx.stroke();
+  }
+  ctx.fillStyle='#5c574e'; ctx.font='10px IBM Plex Mono, monospace';
+  ctx.fillText('P&L', 8, 20);
+  [-100,-50,0,50,100].forEach(bp=>{ ctx.textAlign='center'; ctx.fillText((bp>0?'+':'')+bp, X(bp), H-10); });
+  ctx.textAlign='right';
+  [ymax,(ymax+ymin)/2,ymin].forEach(v=>ctx.fillText(v.toFixed(0),L-6,Y(v)+3));
+  ctx.textAlign='left';
+  let i=0;
+  const sets=[
+    {idx:2,color:'rgba(47,95,138,.72)',size:2.1,skip:false},
+    {idx:3,color:'rgba(176,109,36,.78)',size:2.1,skip:false},
+    {idx:4,color:'rgba(179,58,43,.82)',size:2.3,skip:true}
+  ];
+  function markCurrent(){
+    if(token!==scatterToken) return;
+    const c = curScan(), cx = X(c.bp);
+    ctx.save();
+    ctx.setLineDash([3,3]); ctx.strokeStyle='rgba(28,26,22,.55)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(cx,T); ctx.lineTo(cx,H-B); ctx.stroke();
+    ctx.setLineDash([]);
+    const row = rows.find(x=>Math.abs(x[0]-c.bp)<1e-6);
+    if(row){
+      // 同一收益率档有多个融资档，高亮点取首屏口径（快照融资假设）那一行，并在标签注明
+      const sameBp = rows.filter(x=>Math.abs(x[0]-c.bp)<1e-6);
+      const pick = sameBp.reduce((best,x)=>
+        Math.abs(x[1]-repoPct()) < Math.abs(best[1]-repoPct()) ? x : best, sameBp[0]);
+      [[2,'#2f5f8a'],[3,'#b06d24'],[4,'#b33a2b']].forEach(([idx,col])=>{
+        ctx.beginPath(); ctx.arc(cx, Y(pick[idx]), 3.6, 0, Math.PI*2);
+        ctx.fillStyle=col; ctx.fill(); ctx.strokeStyle='#faf8f3'; ctx.lineWidth=1.4; ctx.stroke();
+      });
+    }
+    ctx.fillStyle='#1c1a16'; ctx.font='9px IBM Plex Mono, monospace';
+    const right = cx > W-96;
+    ctx.textAlign = right ? 'right' : 'left';
+    ctx.fillText(`情景 ${c.bp>0?'+':''}${fmt(c.bp,0)}bp · 融资 ${fmt(repoPct(),2)}%`, cx+(right?-5:5), T+10);
+    ctx.restore();
+  }
+  function batch(){
+    if(token!==scatterToken) return;
+    const end=Math.min(i+90,rows.length);
+    for(;i<end;i++){
+      const r=rows[i];
+      sets.forEach(s=>{
+        if(s.skip && !r[5]) ctx.fillStyle='rgba(138,131,118,.45)';
+        else ctx.fillStyle=s.color;
+        const size = (s.skip&&!r[5])?1.5:s.size;
+        ctx.fillRect(X(r[0])-size/2, Y(r[s.idx])-size/2, size, size);
+      });
+    }
+    if(i<rows.length) requestAnimationFrame(batch); else markCurrent();
+  }
+  requestAnimationFrame(batch);
+}
+function renderStrategy(){
+  const r=run(), o=r.backtest.overall;
+  const cards = [
+    ['A','买入持有',o.A,'#2f5f8a'],
+    ['B','简单对冲',o.B,'#b06d24'],
+    ['C','研究方案 · 全样本',o.C,'#b33a2b'],
+    ['C′','研究方案 · 执行样本',o.C_executed_only,'#1b7a5a']
+  ];
+  $('#stratCards').innerHTML = cards.map(([id,name,s,color])=>`
+    <div class="scard"><div class="h"><span style="color:${color}">${id} · ${name}</span><span class="mono" style="font-size:9px;color:var(--ink-muted)">n=${s.n}</span></div>
+      <div class="nums">
+        <div><span>平均 P&amp;L</span><b style="color:${s.mean_pnl_per_100>0?'var(--avoid)':'var(--rec)'}">${fmt(s.mean_pnl_per_100,3)}</b></div>
+        <div><span>正收益占比</span><b>${fmt(s.direction_accuracy_pnl_gt_0*100,1)}%</b></div>
+        <div><span>情景回撤</span><b>${fmt(s.max_drawdown_of_cumulative_scenario_pnl,0)}</b></div>
+      </div></div>`).join('');
+  $('#stratNote').innerHTML = `C 在 <span class="mono">${r.backtest.overall.C_skipped_only.n} / ${r.backtest.gridSize}</span> 个情景因成本闸门跳过（P&amp;L 记 0），CTD 切换 <span class="mono">${r.backtest.turnover}</span> 次。散点上的竖线对应首屏当前收益率情景；样本为参数网格回放，不可当作时间序列业绩。`;
+  drawScatter();
+  renderSwitch();
+}
+
+// 事前持有 vs 事后最优：把「交割最优券可能已换人」这件事显式画出来。
+// 这是持仓承担的风险，不是可以事后追踪的收益。
+function renderSwitch(){
+  const r=run(), se=r.switchExposure||{}, hs=r.hindsight||{};
+  if(!se.available){ $('#switchCards').innerHTML=''; $('#switchNote').innerHTML=
+    '<span class="mono">该 run 无切换暴露诊断列。</span>'; return; }
+  const cards=[
+    ['切换暴露',`${fmt(se.share*100,1)}%`,'事后最优券已非持仓券'],
+    ['情景数',`${se.nSwitched} / ${r.backtest.gridSize}`,'受影响 / 全网格'],
+    ['平均机会成本',`${fmt(se.meanBp,1)}bp`,'事后口径，不可实现'],
+    ['最大机会成本',`${fmt(se.maxBp,1)}bp`,'单情景最不利']
+  ];
+  $('#switchCards').innerHTML = cards.map(([n,v,d])=>`
+    <div class="scard"><div class="h"><span>${n}</span></div>
+      <div class="nums"><div><b style="font-size:16px">${v}</b></div>
+      <div><span style="font-size:10px;color:var(--ink-muted)">${d}</span></div></div></div>`).join('');
+  const hsTxt = hs.available
+    ? `若事先知道会换券并改持事后最优券，C 的 P&amp;L 平均变化 <span class="mono">${fmt(hs.meanEdge,3)}</span> 元/百元` +
+      `（区间 ${fmt(hs.minEdge,3)} ~ ${fmt(hs.maxEdge,3)}）。该反事实不可实现，且不是上界：` +
+      `事后最优券按 IRR 选出，而发票价经转换因子缩放，IRR 更高的券其绝对 P&amp;L 未必更高。`
+    : `该 run 无事后换券反事实诊断列。`;
+  $('#switchNote').innerHTML = `持仓券固定为结算日判定的 CTD，仅用结算日可见信息。${hsTxt}`;
+  drawCtdSwitch();
+}
+
+function drawCtdSwitch(){
+  const canvas=$('#ctdswitch'); if(!canvas) return;
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.clientWidth, H=320;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H);
+  const L=44,R=12,T=14,B=30, pw=W-L-R, ph=H-T-B;
+  const rows=run().strategy;
+  const rLevels=[...new Set(rows.map(x=>x[1]))].sort((a,b)=>a-b);
+  const rMin=rLevels[0], rMax=rLevels[rLevels.length-1];
+  const X=bp=>L+(bp+100)/200*pw, Y=v=>T+(rMax-v)/((rMax-rMin)||1)*ph;
+  ctx.strokeStyle='rgba(28,26,22,.085)'; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){ const y=T+ph*i/4; ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(W-R,y); ctx.stroke(); }
+  ctx.fillStyle='#5c574e'; ctx.font='10px IBM Plex Mono, monospace';
+  ctx.fillText('融资%', 6, 20);
+  [-100,-50,0,50,100].forEach(bp=>{ ctx.textAlign='center'; ctx.fillText((bp>0?'+':'')+bp, X(bp), H-10); });
+  ctx.textAlign='right';
+  [rMax,(rMax+rMin)/2,rMin].forEach(v=>ctx.fillText(fmt(v,2),L-6,Y(v)+3));
+  ctx.textAlign='left';
+  rows.forEach(r=>{
+    ctx.fillStyle = r[11] ? 'rgba(179,58,43,.72)' : 'rgba(47,95,138,.42)';
+    const s = r[11] ? 2.1 : 1.5;
+    ctx.fillRect(X(r[0])-s/2, Y(r[1])-s/2, s, s);
+  });
+  // 当前情景高亮
+  const c=curScan(), cx=X(c.bp);
+  ctx.save(); ctx.setLineDash([3,3]); ctx.strokeStyle='rgba(28,26,22,.55)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(cx,T); ctx.lineTo(cx,H-B); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle='#1c1a16'; ctx.font='9px IBM Plex Mono, monospace';
+  const right=cx>W-96; ctx.textAlign=right?'right':'left';
+  ctx.fillText(`情景 ${c.bp>0?'+':''}${fmt(c.bp,0)}bp`, cx+(right?-5:5), T+10);
+  ctx.restore();
+}
+
+function renderEvidence(){
+  const gaps=[
+    ['01','完整可交割券清单','清单与数据日期未严格对齐，当前口径为条件化判断。'],
+    ['02','同一时点的现券成交价','现券常有价无成交，需逐券校验或换源。'],
+    ['03','融资与借券成本','公开源缺债券借贷费率，成本带以审慎假设折算。'],
+    ['04','交割窗口择券权','择券与择日期权未建模，边界结论保留安全垫。']
+  ];
+  $('#gaps').innerHTML = gaps.map(([n,t,d])=>`<div class="gap"><div class="no">${n}</div><div class="tx"><b>${t}</b>${d}</div></div>`).join('');
+}
+
+function renderFooter(){
+  $('#footer').innerHTML = `
+    数据来源：交易所公开规则与冻结研究快照 · 研究复现，不构成投资建议。<br>
+    本项目为独立研究复现，不代表任何平台官方背书。`;
+}
+
+// 情景切换的唯一入口：一条状态驱动全页图表，避免只有虚线移动
+function syncToScan(){
+  renderScan();
+  updateKpis();
+  updateHeroQuad();
+  updateHeroGate();
+  renderCTB();
+  renderGate();
+  drawScatter();
+  drawCtdSwitch();
+}
+
+function renderAll(){
+  renderHero(); renderSidePanels(); renderCTB(); renderScan(); renderGate(); renderStrategy(); renderEvidence();
+  $('#runswitch').innerHTML = [['base',D.base.label],['anchor',D.anchor.label]]
+    .map(([k,label])=>`<button class="${k===runKey?'on':''}" data-run="${k}">${label}</button>`).join('');
+  $$('#runswitch button').forEach(b=>b.addEventListener('click',()=>{
+    runKey=b.dataset.run; scanIndex=10; stopPlay(); renderAll();
+  }));
+}
+
+function stopPlay(){
+  playing=false; if(timer){clearInterval(timer);timer=null;} syncToScan();
+}
+function startPlay(){
+  playing=true;
+  if(timer) clearInterval(timer);
+  timer=setInterval(()=>{ scanIndex=(scanIndex+1)%run().yieldScan.length; syncToScan(); },playDelay);
+  syncToScan();
+}
+$('#play-btn').addEventListener('click',()=>{ playing?stopPlay():startPlay(); });
+$('#slider').addEventListener('input',e=>{
+  if(timer){clearInterval(timer);timer=null;} playing=false;
+  scanIndex=Number(e.target.value); syncToScan();
+});
+$$('#speed-group button').forEach(b=>b.addEventListener('click',()=>{
+  playDelay=Number(b.dataset.spd);
+  $$('#speed-group button').forEach(x=>x.classList.toggle('active',x===b));
+  if(playing) startPlay();
+}));
+
+/* 首屏曲线悬停读数 */
+$('#scanSvg').addEventListener('pointermove',e=>{
+  const svg=$('#scanSvg'), ctm=svg.getScreenCTM(); if(!ctm) return;
+  const pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY;
+  const x=pt.matrixTransform(ctm.inverse()).x;
+  if(x<52||x>886) return;
+  const n=run().yieldScan.length;
+  const idx=Math.max(0,Math.min(n-1,Math.round((x-52)/(900-52-14)*(n-1))));
+  if(idx!==scanIndex){
+    if(playing){ playing=false; if(timer){clearInterval(timer);timer=null;} }
+    scanIndex=idx; syncToScan();
+  }
+});
+
+/* 导览：仅在点击后启动，不改动页面默认滚动位置 */
+const TOUR=[
+  ['hero','动态总览','一屏看完 CTD 判定、成本闸门与数据口径。拖动底部滑块或点播放，全页图表会随收益率情景同步切换。'],
+  ['summary','研究摘要','冻结基线的空间 {spreadBp}bp 小于全成本 {costBp}bp；{comparisonSentence}'],
+  ['pipeline','研究链路','五级链路逐段落盘。数据缺口在最上游，因此下游结论只能是条件化判断。'],
+  ['formula','定价框架','四个式子支撑全部判定：发票价、IRR、BNOC 与可执行闸门。账面偏差不等于无风险套利。'],
+  ['ctd','CTD 判定','IRR 最高与 BNOC 最低必须指向同一只券；四象限卡片与三线表来自同一快照。'],
+  ['scan','情景扫描','{nYieldBps} 档收益率平移下的四券 IRR。阴影是 CTD 切换区间，点击切换标签可跳到对应档位。'],
+  ['gate','可执行边界','竖针为空间、斜纹为全成本。针未越过带右沿，不给出交易指令。'],
+  ['strategy','策略对照','{nScenarios} 组网格上的三策略 P&L。散点是参数回放，不是历史业绩序列。'],
+  ['exante','事前持有','建仓时只能看到结算日信息；此后最优交割券若已换人，那是持仓要承担的风险，不是可事后追踪的收益。'],
+  ['evidence','数据口径','说明数据前提与适用边界；本页结果不构成投资建议或可交易信号。']
+];
+let tourStep=-1, tourTimer=null, tourBox=null;
+function paintTour(){
+  const [id,title,text]=TOUR[tourStep];
+  tourBox.innerHTML=`<div class="t">GUIDED READING · ${String(tourStep+1).padStart(2,'0')} / ${TOUR.length}</div>
+    <div class="x">${title}</div><div class="d">${dynText(text)}</div>
+    <div class="nav"><button data-act="prev">← 上一节</button><span>${id}</span><button data-act="next">下一节 →</button><button data-act="exit">退出</button></div>`;
+  $$('#tourbox button').forEach(b=>b.addEventListener('click',()=>{
+    const a=b.dataset.act;
+    if(a==='exit'){stopTour();return;}
+    tourStep=a==='next'?Math.min(TOUR.length-1,tourStep+1):Math.max(0,tourStep-1);
+    paintTour();
+  }));
+  document.getElementById(id).scrollIntoView({behavior:'smooth',block:'start'});
+}
+function startTour(){
+  if(tourBox) return;
+  tourBox=el('div','tourbox'); tourBox.id='tourbox'; document.body.appendChild(tourBox);
+  $('#tour-btn').classList.add('active');
+  tourStep=0; paintTour();
+  tourTimer=setInterval(()=>{ if(tourStep>=TOUR.length-1){stopTour();return;} tourStep++; paintTour(); },8200);
+}
+function stopTour(){
+  if(tourTimer){clearInterval(tourTimer);tourTimer=null;}
+  if(tourBox){tourBox.remove();tourBox=null;}
+  $('#tour-btn').classList.remove('active');
+}
+$('#tour-btn').addEventListener('click',()=>{ tourBox?stopTour():startTour(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&tourBox) stopTour(); });
+
+const obs=new IntersectionObserver(es=>{
+  es.forEach(e=>{ if(e.isIntersecting){ $$('.navlinks a').forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id)); } });
+},{rootMargin:'-18% 0px -72% 0px'});
+$$('section, .figure-app').forEach(s=>obs.observe(s));
+window.addEventListener('resize',()=>drawScatter());
+
+applyDynamics();
+renderFlow(); renderEvidence(); renderFooter(); renderAll();
+</script>
+</body>
+</html>

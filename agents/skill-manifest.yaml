@@ -1,0 +1,67 @@
+# QuantSkills 兼容元数据。Agent 声明入口为 AGENTS.md；正文以 SKILL.md 为准。
+# 本项目非 QuantSkills 官方或社区收录项目，未经维护者审核，不代表官方背书。
+name: agent-cfe-ctd-irr
+title: 国债期货 CTD / IRR / 净基差复现与可执行边界
+license: MIT
+entrypoint: AGENTS.md
+requires:
+  - pandadata-api
+tags:
+  - quant
+  - fixed-income
+  - treasury-futures
+  - ctd
+  - irr
+  - bnoc
+  - deliverable-basket
+  - executable-boundary
+  - agent
+  - quantstudio
+metadata:
+  organization: Independent (QuantStudio local workspace)
+  project_type: agent
+  category: fixed-income-research
+  language: zh
+  status: research
+  validation_level: runnable
+  maintainer_type: local
+  endorsement: none
+  python: ">=3.10 (stdlib core; optional panda_data+pandas for official fetch)"
+  data_versions:
+    - degraded-ctd-irr-v1-64e0d9b08206
+    - hybrid-ctd-irr-v1-64e0d9b0820681cf2a
+  source_mode: degraded
+  official_data_source: pandadata.get_future_detail/get_future_daily/get_macro_ir (get_trade_cal 不支持 CFE，已撤回)
+  exchange_public_evidence: cffex_sources.json (deliverable basket / published CF / CF & accrual formulas / delivery rules); research evidence only, not wired into any run
+  evidence_notes:
+    - "T2612 current deliverable basket is 17 bonds; the 2026-03-13 listing CSV contains 13 bonds from the listing date only"
+    - "CF formula recomputation is limited: 13/13 on the listing subset, 43/46 out-of-sample; use published CF only"
+    - "all-deliverable CSV has no as-of field; fetched 2026-11-17 while frozen as_of is 2026-11-13"
+    - "current evidence status in reports/AUDIT.md; delivery history in reports/CHANGELOG.md"
+  baseline_id: FB-2026-11-13-v1
+  difficulty_D_frozen: 0.95
+quantSkills:
+  project_type: agent
+  category: fixed-income-research
+  collection: fixed-income-research
+  license: MIT
+  language: zh
+  status: research
+  validation_level: runnable
+  maintainer_type: local
+  endorsement: none
+  platforms:
+    - quantstudio
+    - claude-code
+    - codex
+    - cursor
+  requires:
+    - pandadata-api
+  summary_zh: 复现最便宜可交割券 CTD、隐含回购利率 IRR 与净基差 BNOC；与买入持有/简单对冲对照；扫描融资与 CTD 切换情景；给出全成本覆盖、CF 敏感性与容量边界。研究型 Agent，非生产因子包。
+  summary_en: Reproduce cheapest-to-deliver, implied repo rate and net basis for CGB futures; compare against buy-and-hold and naive hedge; scan financing/CTD-switch scenarios; deliver executable and capacity boundaries. Research agent, not a production alpha factor.
+  forbids:
+    - deterministic trading instructions
+    - look-ahead data
+    - calling book basis a riskless arbitrage
+    - using reference-discounted CF as exchange-published CF
+    - claiming QuantSkills endorsement without maintainer review

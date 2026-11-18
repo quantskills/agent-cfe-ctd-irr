@@ -1,0 +1,12 @@
+# 运行产物（保留目录占位与 samples）
+reports/runtime_out/*
+!reports/runtime_out/.gitkeep
+reports/publish/*
+!reports/publish/.gitkeep
+__pycache__/
+*.py[cod]
+.env
+.venv/
+*.log
+# 平台留痕副本中的 log 属交付证据，不按通用规则忽略
+!delivery/platform_capture/**/*.log

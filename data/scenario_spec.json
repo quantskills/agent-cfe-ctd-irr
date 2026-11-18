@@ -1,0 +1,90 @@
+{
+  "spec_version": "ctd-irr-scenario-v1",
+  "declared_scenario": true,
+  "not_market_data": true,
+  "WARNING": "本文件全部数值是为复现公式与情景逻辑而设定的给定参数，不是任何真实交易日的市场报价、交易所公告或中债估值。禁止据此形成市场结论。",
+  "as_of_date": "2026-11-13",
+  "settle_date": "2026-11-13",
+  "delivery_date": "2026-12-11",
+  "delivery_date_origin": "declared_scenario_not_official_calendar",
+  "contract": "T2612",
+  "exchange": "CFE",
+  "product": "t",
+  "tick_size": 0.005,
+  "contract_notional_wan": 100,
+  "nominal_standard_coupon": 0.03,
+  "futures_price": 107.32,
+  "futures_price_origin": "declared_scenario_not_market_quote",
+  "delivery_settlement_price_rule": "情景假设：交割结算价以当前期货价格代理；真实交割结算价由交易所按交割月规则产生，二者不等价。",
+  "yield_curve": {
+    "level": 0.0185,
+    "slope_per_year": 0.00006,
+    "shape": "flat_plus_linear_slope",
+    "origin": "declared_scenario"
+  },
+  "costs": {
+    "repo_rate": 0.0185,
+    "bond_lend_fee": 0.006,
+    "transaction_cost_bp": 0.5,
+    "delivery_fee_per_100": 0.02,
+    "slippage_bp": 1.0,
+    "ctd_switch_buffer_bp": 5.0,
+    "origin": "declared_scenario"
+  },
+  "capacity": {
+    "max_position_lots_per_account": 2000,
+    "assumed_participation_ratio": 0.05,
+    "origin": "declared_scenario_not_exchange_rule"
+  },
+  "eligible_rule_note": "T 合约可交割券为剩余期限约 6.5-10.25 年的记账式附息国债；本情景只用 4 只给定券覆盖短/中/长端，不等同于交易所实际可交割券清单。",
+  "basket": [
+    {
+      "bond_id": "SCEN-A",
+      "name": "情景券A_中久期高票息",
+      "coupon": 0.0272,
+      "freq": 1,
+      "maturity": "2034-05-15",
+      "coupon_month": 5,
+      "coupon_day": 15,
+      "spread_bp": 6,
+      "available_notional_wan": 120000,
+      "lendable_notional_wan": 30000
+    },
+    {
+      "bond_id": "SCEN-B",
+      "name": "情景券B_长久期低票息",
+      "coupon": 0.0195,
+      "freq": 1,
+      "maturity": "2036-03-15",
+      "coupon_month": 3,
+      "coupon_day": 15,
+      "spread_bp": 22,
+      "available_notional_wan": 90000,
+      "lendable_notional_wan": 8000
+    },
+    {
+      "bond_id": "SCEN-C",
+      "name": "情景券C_短久期中票息",
+      "coupon": 0.0235,
+      "freq": 1,
+      "maturity": "2033-09-15",
+      "coupon_month": 9,
+      "coupon_day": 15,
+      "spread_bp": -1,
+      "available_notional_wan": 150000,
+      "lendable_notional_wan": 45000
+    },
+    {
+      "bond_id": "SCEN-D",
+      "name": "情景券D_超长久期最低票息",
+      "coupon": 0.0162,
+      "freq": 1,
+      "maturity": "2036-11-15",
+      "coupon_month": 11,
+      "coupon_day": 15,
+      "spread_bp": 24,
+      "available_notional_wan": 60000,
+      "lendable_notional_wan": 5000
+    }
+  ]
+}

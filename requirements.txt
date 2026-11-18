@@ -1,0 +1,7 @@
+# 主体计算为纯标准库，无强制第三方依赖；Python >= 3.10（本机验证 3.13.14）。
+#
+# 可选：官方数据链路 scripts/fetch_official.py 需要 panda_data SDK 与 pandas。
+# 官方链路已在平台授权环境验证（panda_data 0.0.12 / pandas 2.3.3）；解释器路径因环境而异，不在此写死。
+# 接口契约见 ~/.claude/skills/pandadata-api/references/method-index.md，
+# 不自行封装或猜测接口；--reuse 模式完全离线，无需安装。
+# 不在本文件写死安装源或版本，避免与平台已授权环境冲突。

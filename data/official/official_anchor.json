@@ -1,0 +1,152 @@
+{
+  "fetch_time": "2026-11-14T23:41:12",
+  "credential_source": "~/.pandadata/pandadata.env（仅进程内存，未写入任何产物）",
+  "service_base_url": "http://pandadata.pandaaiquant.com",
+  "as_of_requested": "2026-11-13",
+  "window_days": 90,
+  "official_calls": [
+    {
+      "method": "get_trade_cal",
+      "params": {
+        "start_date": "20261014",
+        "end_date": "20261113",
+        "exchange": "SH",
+        "is_trading_day": 1
+      },
+      "ok": true,
+      "rows": 23,
+      "seconds": 0.17
+    },
+    {
+      "method": "get_future_detail",
+      "params": {
+        "exchange": [
+          "CFE"
+        ],
+        "fields": [],
+        "is_trading": null
+      },
+      "ok": true,
+      "rows": 704,
+      "seconds": 0.31
+    },
+    {
+      "method": "get_future_daily",
+      "params": {
+        "symbol": [
+          "T2612.CFE"
+        ],
+        "start_date": "20260815",
+        "end_date": "20261113",
+        "fields": []
+      },
+      "ok": true,
+      "rows": 59,
+      "seconds": 0.27
+    },
+    {
+      "method": "get_macro_ir",
+      "params": {
+        "start_date": "20260815",
+        "end_date": "20261113"
+      },
+      "ok": true,
+      "rows": 829461,
+      "seconds": 2.99
+    }
+  ],
+  "sdk_get_method_count": 213,
+  "bond_like_method_names": [
+    "get_fina_reports",
+    "get_stock_shareholder_report"
+  ],
+  "calendar": {
+    "rows": 23,
+    "as_of_is_trading_day": true,
+    "note": "锚定日是否交易日以目标合约当日是否有行情为准；get_trade_cal 仅作辅助核对，不据此推断交割日。"
+  },
+  "contract": {
+    "symbol": "T2612.CFE",
+    "name": "长期国债2612",
+    "product": "Government",
+    "exchange": "CFE",
+    "underlying_symbol": "T",
+    "trading_code": "T2612",
+    "listed_date": "2026-03-16",
+    "de_listed_date": "2026-12-11",
+    "maturity_date": "2026-12-11",
+    "start_delivery_date": "2026-12-14",
+    "end_delivery_date": "2026-12-16",
+    "contract_multiplier": 10000.0,
+    "margin_rate": 0.02,
+    "is_trading": 1,
+    "trading_hours": "09:31-11:30,13:01-15:15"
+  },
+  "quote": {
+    "symbol": "T2612.CFE",
+    "date": "20261113",
+    "field_used": "settlement",
+    "value": 110.05,
+    "settlement": 110.05,
+    "close": 110.045,
+    "row": {
+      "symbol": "T2612.CFE",
+      "date": "20261113",
+      "open": 110.145,
+      "high": 110.17,
+      "low": 110.005,
+      "close": 110.045,
+      "volume": 163935.0,
+      "dominant_id": "T2612",
+      "underlying_symbol": "T",
+      "trading_code": "T2612",
+      "exchange": "CFE",
+      "limit_up": 112.305,
+      "limit_down": 107.905,
+      "open_interest": 326905.0,
+      "day_session_open": 110.145,
+      "amount": 180458916950.0,
+      "settlement": 110.05,
+      "pre_settlement": 110.105
+    },
+    "price_origin": "pandadata.get_future_daily settlement (fallback: close)"
+  },
+  "macro_ir": {
+    "raw_rows_returned": 829461,
+    "latest_period_rows_saved": 3275,
+    "distinct_symbols": 26806,
+    "latest_period_date": "20261113",
+    "symbol_sample": [
+      "IR0000001",
+      "IR0000002",
+      "IR0000005",
+      "IR0000006",
+      "IR0000021",
+      "IR0000023",
+      "IR0000024",
+      "IR0000025",
+      "IR0000026",
+      "IR0000027",
+      "IR0000028",
+      "IR0000029"
+    ],
+    "note": "指标码表未随接口提供，无法把任一 data_value 认定为回购/借券利率；本题 repo_rate 仍为声明式情景值。"
+  },
+  "coverage": {
+    "government_contracts_in_CFE": 159,
+    "has_futures_quote": true,
+    "has_official_delivery_calendar": true,
+    "has_deliverable_bond_list": false,
+    "has_bond_dirty_quote": false,
+    "has_official_conversion_factor": false,
+    "has_repo_or_lend_market_rate": false,
+    "conclusion": "官方库覆盖期货行情与合约交割条款，不覆盖现券/CF/可交割券清单/融资借券成本；整体输入仍须按规范标为 degraded，仅部分字段可官方锚定。"
+  },
+  "data_gaps": [
+    "official_deliverable_list（交易所公布可交割券清单）",
+    "bond_dirty_quote（现券全价/净价/应计利息）",
+    "official_conversion_factor（交易所公布转换因子）",
+    "repo_market_rate / bond_lend_market_rate（市场融资与借券成本）",
+    "macro_ir 指标码表（无法把指标值映射成回购利率）"
+  ]
+}

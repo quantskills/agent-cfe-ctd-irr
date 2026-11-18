@@ -1,0 +1,44 @@
+---
+description: 使用 CTD / IRR / BNOC 研究 Agent 复现国债期货交割券判定、情景扫描与可执行边界。
+globs:
+  - "**/*.py"
+  - "**/*.md"
+alwaysApply: false
+---
+
+# CTD / IRR / BNOC Agent（Cursor 项目规则适配）
+
+当用户询问以下问题时使用本 Agent：
+
+- 国债期货 CTD 怎么判定？IRR 与 BNOC 是否一致？
+- 融资利率变化或收益率曲线平移后 CTD 会不会切换？
+- 净基差覆盖不覆盖全成本，能不能执行，容量多大？
+- 转换因子误差对判定有什么影响？
+
+## 使用步骤
+
+1. 读取本仓库 `AGENTS.md`（Agent 声明与行为入口）。
+2. 需要官方数据时，先读 `~/.claude/skills/pandadata-api/SKILL.md`，再按接口契约单次调用。
+3. 方法细节读 `SKILL.md`；字段口径与时点对齐读 `references/data_guide.md`。
+4. 优先 `python -m runtime self-test` / `python -m unittest discover -s tests -v`。
+5. 依赖失败必须标注缺口，禁止编造；禁止交易指令与无风险套利表述。
+
+## 安装路径
+
+```text
+.cursor/skills/agent-cfe-ctd-irr
+```
+
+依赖 Skill 置于：
+
+```text
+.cursor/skills/pandadata-api
+```
+
+## 核心规则摘要
+
+- `source_mode` 只按 provenance 判定；`live` 需七项正式数据项全为真，缺一即 `degraded`。
+- 混合锚定 run 为 `INVALID_MIXED_STATE`，不得当市场结论。
+- CF 只采用交易所公布值；公式复算样本外有反例，不能替代公布值。
+- L4 为 `delivery/visualization/index.html`，是从 run 产物生成的研究视图，不是回测净值图。
+- 本报告仅供研究参考，不构成任何投资建议。
