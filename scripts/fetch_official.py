@@ -2,8 +2,12 @@
 """从 PandaData 官方数据服务拉取本题可核验的锚定数据（单次、可数请求）。
 
 用法：
-    <装有 panda_data SDK 的平台 Python> scripts/fetch_official.py        # 单次可数请求
-    python scripts/fetch_official.py --reuse                              # 只读本地已落盘数据，零网络
+    <装有 panda_data SDK 的平台 Python> scripts/fetch_official.py
+        # 截至今天，取该合约最新一根行情的日期作为锚定日
+    python scripts/fetch_official.py --as-of YYYY-MM-DD
+        # 只在需要复现某一天时显式指定
+    python scripts/fetch_official.py --reuse
+        # 只读本地已落盘数据，零网络
 
 设计约束：
 1. 凭据只从 ~/.pandadata/pandadata.env 读入进程内存，绝不写进任何产物，
@@ -20,7 +24,7 @@ import json
 import shlex
 import sys
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -82,6 +86,32 @@ def _to_plain(value):
     return value
 
 
+def parse_market_date(value) -> date | None:
+    """接受 YYYYMMDD、YYYY-MM-DD 或 date。无法识别时返回 None。"""
+    if value is None or value == "":
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    text = str(value).strip()
+    if len(text) >= 10 and text[4] == "-" and text[7] == "-":
+        return date.fromisoformat(text[:10])
+    digits = "".join(ch for ch in text if ch.isdigit())
+    if len(digits) >= 8:
+        return date(int(digits[:4]), int(digits[4:6]), int(digits[6:8]))
+    return None
+
+
+def resolve_upper_bound(as_of: str | None, today: date | None = None) -> tuple[date, str]:
+    """未指定日期时上界是今天，模式为 latest；显式日期则为 pinned。"""
+    today = today or date.today()
+    text = "" if as_of is None else str(as_of).strip()
+    if text == "" or text.lower() == "latest":
+        return today, "latest"
+    return date.fromisoformat(text), "pinned"
+
+
 def call(pd, calls: list[dict], method: str, **params) -> tuple[list[dict], bool]:
     """执行一次官方接口调用并留痕，不吞异常。"""
     entry: dict = {"method": method, "params": {k: _to_plain(v) for k, v in params.items()}}
@@ -105,8 +135,8 @@ def main() -> int:
     ap.add_argument("--env-file", default=str(DEFAULT_ENV))
     ap.add_argument("--out-dir", default=str(DEFAULT_OUT))
     ap.add_argument("--log-dir", default=str(DEFAULT_LOG))
-    ap.add_argument("--as-of", default="2026-11-13",
-                    help="锚定日 YYYY-MM-DD；不得晚于官方行情最新日")
+    ap.add_argument("--as-of", default=None,
+                    help="锚定日 YYYY-MM-DD。省略时取截至今天的最新行情日")
     ap.add_argument("--contract", default="T2612", help="合约交易代码，如 T2612")
     ap.add_argument("--window-days", type=int, default=90)
     ap.add_argument("--reuse", action="store_true",
@@ -145,10 +175,10 @@ def main() -> int:
     panda_data.init_token(username=user, password=pwd, base_url=base)
     print("[fetch] login OK", flush=True)
 
-    as_of = date.fromisoformat(args.as_of)
-    start = (as_of - timedelta(days=args.window_days)).strftime("%Y%m%d")
-    end = as_of.strftime("%Y%m%d")
-    cal_start = (as_of - timedelta(days=30)).strftime("%Y%m%d")
+    upper, as_of_mode = resolve_upper_bound(args.as_of)
+    start = (upper - timedelta(days=args.window_days)).strftime("%Y%m%d")
+    end = upper.strftime("%Y%m%d")
+    cal_start = (upper - timedelta(days=30)).strftime("%Y%m%d")
     calls: list[dict] = []
 
     # 1) 交易日历：确认锚定日是交易日（单次）
@@ -189,6 +219,9 @@ def main() -> int:
             latest[k] = _to_plain(latest[k])
     quote_field = "settlement" if settlement not in (None, "", 0) else "close"
     quote_value = _to_plain(settlement if quote_field == "settlement" else close)
+    quote_day = parse_market_date(latest.get("date"))
+    # latest：锚定日跟着最后一根行情走，不把查询上界（今天）写成数据期。
+    resolved = quote_day if as_of_mode == "latest" and quote_day is not None else upper
 
     # 4) 宏观利率指标（单次）。指标码表未随接口提供，不做含义猜测。
     ir_rows, _ = call(panda_data, calls, "get_macro_ir",
@@ -209,14 +242,16 @@ def main() -> int:
         "fetch_time": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "credential_source": "~/.pandadata/pandadata.env（仅进程内存，未写入任何产物）",
         "service_base_url": base,
-        "as_of_requested": args.as_of,
+        "as_of_requested": resolved.isoformat(),
+        "as_of_mode": as_of_mode,
+        "as_of_upper_bound": upper.isoformat(),
         "window_days": args.window_days,
         "official_calls": calls,
         "sdk_get_method_count": len(sdk_methods),
         "bond_like_method_names": bond_like,
         "calendar": {
             "rows": len(cal_rows),
-            "as_of_is_trading_day": bool(latest) and str(latest.get("date", "")) == end,
+            "as_of_is_trading_day": quote_day == resolved,
             "note": "锚定日是否交易日以目标合约当日是否有行情为准；"
                     "get_trade_cal 仅作辅助核对，不据此推断交割日。",
         },

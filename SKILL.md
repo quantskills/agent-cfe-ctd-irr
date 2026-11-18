@@ -34,13 +34,13 @@ description: 当需要复现国债期货最便宜可交割券 CTD、隐含回购
 | 项 | 说明 |
 |----|------|
 | 官方数据库 | PandaData 官方数据服务；凭据在 `~/.pandadata/pandadata.env`（`DEFAULT_USERNAME` / `DEFAULT_PASSWORD` / `JAVA_SERVICE_BASE_URL`），接口契约见 `~/.claude/skills/pandadata-api/references/method-index.md` |
-| 官方数据拉取 | `scripts/fetch_official.py` — 4 次单次调用，留痕 `data/official/official_anchor.json`；`--reuse` 可零网络复跑 |
+| 官方数据拉取 | `scripts/fetch_official.py` — 4 次单次调用，留痕 `data/official/official_anchor.json`。省略 `--as-of` 时锚定日取截至今天的最新行情日；`--reuse` 可零网络复跑 |
 | 交易所公开证据 | `data/official/cffex_sources.json` + `cffex_*`（清单/CF 与应计公式原图/交割细则 PDF）；来源 URL、SHA256、抓取时间逐项登记 |
 | 当前可交割券清单 | `data/official/cffex_all_deliverable_current.csv`（T2612 共 17 只券）；`cffex_T2612_deliverable_basket.csv` 是上市时点的 13 只券快照，不作为 live 篮子；全量文件无数据期字段 |
 | 冻结基线快照 | `data/input_snapshot.json`（`source_mode=degraded`，`input_origin=declared_scenario`） |
 | 官方锚定混合快照 | `data/input_snapshot_official.json`（混合来源，**仍** `source_mode=degraded`） |
 | 情景规格 | `data/scenario_spec.json`；由 `scripts/build_snapshot.py` 可复算生成快照 |
-| `as_of` | `meta.as_of_date`；必须 <= `settle_date`（反未来函数门禁） |
+| `as_of` | 官方拉取默认是最新行情日，不写死日历。冻结基线的 `meta.as_of_date` 仍来自情景规格，且必须 <= `settle_date` |
 | 关键参数 | `settle_date` / `delivery_date` / `futures_price` / `repo_rate` / `costs` / `capacity` |
 | 数据前提字段 | 可交割券清单、现券净价/全价、应计利息、票息与付息日、转换因子、期货价格、融资与借券成本；逐券另需修正久期与可交割/可借券存量 |
 
@@ -79,8 +79,8 @@ L1–L5 验证产物（9 项硬断言、精度改善 33.9×、CTD 判定与切�
 
 **交付形式约定**：分析型 skill 一律按 L1–L5 分层交付——
 L1 条件化结论、L2 Markdown 证据表、L3 ASCII/PNG 图、L4 单文件 HTML 交互页、
-L5 带公共最小字段集的 CSV/JSON。每次交付须在 `DELIVERY_INDEX.md` 索引到
-对应层级的具体文件，并区分「结论性产物」与「只读研究视图」。
+L5 带公共最小字段集的 CSV/JSON。交付时把各层文件放在 `reports/` 与
+`delivery/visualization/`，并区分「结论性产物」与「只读研究视图」。
 
 L4 是由两个 run 的既有产物生成的只读研究视图，不是回测净值图，也不是生产信号源；
 本项目不产出 `reports/backtest/nav_curve.html` 一类净值页。
@@ -121,7 +121,8 @@ cd <path-to>/agent-cfe-ctd-irr
 python scripts/rebuild_all.py            # ★ 一键重建全链路（含客户视图页面）
 python scripts/build_snapshot.py --check  # 只校验冻结输入快照可重现性，不写盘
 # 官方数据（需 panda_data SDK，见「依赖」）：
-python scripts/fetch_official.py
+python scripts/fetch_official.py                 # 锚定日 = 截至今天的最新行情日
+python scripts/fetch_official.py --as-of YYYY-MM-DD   # 仅复现某一天时指定
 python scripts/build_snapshot.py --official-anchor data/official/official_anchor.json \
     --out data/input_snapshot_official.json
 python -m runtime run --input data/input_snapshot_official.json --run-id <new-id>
@@ -256,7 +257,6 @@ AGENTS.md                     Agent 声明与宿主行为入口（QuantSkills �
 SKILL.md                      方法正文：输入输出、运行、验收与边界
 README.md / README.en.md      仓库主页（中英文）
 LICENSE                       MIT 许可
-DELIVERY_INDEX.md             交付总索引（内容清单、校验状态、对话记录与平台留痕）
 runtime/                     bonds / pricing / scenarios / robustness / contest_replay
                              io_contract / validation / selftest / writers / cli
                              semantics（计算语义版本轴）/ run_registry（run 自动发现）
@@ -282,7 +282,6 @@ reports/                     official_anchor_comparison.{json,md}
                              samples/（L1–L3 结构样例）
                              AUDIT.md（当前证据状态）/ CHANGELOG.md（演进记录）
 reports/publish/<as_of>/<data_version>__<semantics_version>/ 发布态只读快照
-delivery/conversation/       完整对话记录（结构化 + 可读版 + 元信息 + 生成脚本）
 delivery/platform_capture/   QuantStudio 平台留痕（三个批次，逐字节副本）
 delivery/visualization/      动态可视化页面（index.html 单文件 + 模板 + 离线字体 + 数据注入脚本）
 ```

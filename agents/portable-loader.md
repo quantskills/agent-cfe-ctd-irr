@@ -22,7 +22,7 @@
 - 所有脚本以 `Path(__file__).resolve().parent.parent` 定位项目根，可在任意 CWD 运行；
   `--input` 可显式指定快照。L4 页脚的 `projectRoot` 同样由脚本位置推导。
 - 依赖 Skill 目录用 `PANDADATA_API_SKILL` 覆盖，默认 `~/.claude/skills/pandadata-api`。
-- 历史留痕文件（对话归档、平台采集、既有 run 的 manifest / scope）保留生成时的
+- 历史留痕文件（平台采集、既有 run 的 manifest / scope）保留生成时的
   绝对路径作为证据，不代表当前环境配置。
 
 ## 前置条件

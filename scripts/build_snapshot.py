@@ -29,6 +29,19 @@ from runtime.io_contract import attach_validation  # noqa: E402
 from runtime.contest_replay import PLATFORM_ENTRY_RECIPE  # noqa: E402
 
 
+def _iso_market_date(value) -> str | None:
+    """把行情日期收成 YYYY-MM-DD。认不出时返回 None，调用方保持原规格。"""
+    if value is None or value == "":
+        return None
+    text = str(value).strip()
+    if len(text) >= 10 and text[4] == "-" and text[7] == "-":
+        return text[:10]
+    digits = "".join(ch for ch in text if ch.isdigit())
+    if len(digits) >= 8:
+        return f"{digits[:4]}-{digits[4:6]}-{digits[6:8]}"
+    return None
+
+
 def _apply_official_anchor(spec: dict, anchor: dict) -> dict:
     """只替换官方库真实覆盖的字段，其余保持声明式，绝不静默补造。"""
     out = json.loads(json.dumps(spec))
@@ -50,6 +63,10 @@ def _apply_official_anchor(spec: dict, anchor: dict) -> dict:
         "模型按最早可交割日单点计算，未建模窗口内择券权）"
     )
     out["futures_price"] = float(value)
+    quote_day = _iso_market_date(quote.get("date"))
+    if quote_day:
+        out["as_of_date"] = quote_day
+        out["settle_date"] = quote_day
     out["futures_price_origin"] = (
         f"pandadata.get_future_daily.{quote['field_used']}@{quote['date']} "
         f"symbol={quote['symbol']}"

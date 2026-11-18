@@ -194,5 +194,72 @@ class DashboardMetaTests(unittest.TestCase):
                 module.extract_run(run_id, "probe", 0.0)["baseIrrPct"], places=9)
 
 
+def _load_fetch():
+    path = ROOT / "scripts" / "fetch_official.py"
+    spec = importlib.util.spec_from_file_location("fetch_official_probe", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class AsOfResolutionTests(unittest.TestCase):
+    def test_default_as_of_is_not_a_pinned_calendar_day(self):
+        source = (ROOT / "scripts" / "fetch_official.py").read_text(encoding="utf-8")
+        self.assertNotIn('default="2026-11-13"', source)
+        self.assertNotIn("default='2026-11-13'", source)
+
+    def test_omitted_as_of_uses_today_then_latest_quote(self):
+        fetch = _load_fetch()
+        today = fetch.date(2026, 11, 18)
+        upper, mode = fetch.resolve_upper_bound(None, today)
+        self.assertEqual(upper, today)
+        self.assertEqual(mode, "latest")
+        pinned, mode = fetch.resolve_upper_bound("2026-11-13", today)
+        self.assertEqual(pinned, fetch.date(2026, 11, 13))
+        self.assertEqual(mode, "pinned")
+        self.assertEqual(fetch.parse_market_date("20261113"), fetch.date(2026, 11, 13))
+        self.assertEqual(fetch.parse_market_date("2026-11-13"), fetch.date(2026, 11, 13))
+
+    def test_official_anchor_follows_quote_date(self):
+        path = ROOT / "scripts" / "build_snapshot.py"
+        spec = importlib.util.spec_from_file_location("build_snapshot_probe", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        base = {
+            "as_of_date": "2026-11-13",
+            "settle_date": "2026-11-13",
+            "contract": "T2612",
+            "exchange": "CFE",
+            "futures_price": 107.32,
+            "WARNING": "x",
+        }
+        anchor = {
+            "as_of_requested": "2026-11-18",
+            "service_base_url": "http://example.invalid",
+            "contract": {
+                "trading_code": "T2612",
+                "exchange": "CFE",
+                "start_delivery_date": "2026-12-14",
+                "end_delivery_date": "2026-12-16",
+            },
+            "quote": {
+                "value": 110.2,
+                "date": "20261118",
+                "field_used": "settlement",
+                "symbol": "T2612.CFE",
+                "settlement": 110.2,
+                "close": 110.1,
+                "price_origin": "pandadata",
+            },
+            "coverage": {},
+            "data_gaps": [],
+            "official_calls": [],
+        }
+        out = module._apply_official_anchor(base, anchor)
+        self.assertEqual(out["as_of_date"], "2026-11-18")
+        self.assertEqual(out["settle_date"], "2026-11-18")
+        self.assertEqual(out["futures_price"], 110.2)
+
+
 if __name__ == "__main__":
     unittest.main()

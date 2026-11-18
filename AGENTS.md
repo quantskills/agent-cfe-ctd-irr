@@ -29,10 +29,8 @@ quantSkills:
 # 国债期货 CTD / IRR / BNOC 复现与可执行边界
 
 本文件是本仓库的 Agent 声明与行为入口。给人读的项目背景在
-[`README.md`](README.md)；方法正文在 [`SKILL.md`](SKILL.md)；题目范围对照在
-[`TASK_SCOPE.md`](TASK_SCOPE.md)；字段契约在
-[`references/data_guide.md`](references/data_guide.md)；目录、对话归档与平台留痕在
-[`DELIVERY_INDEX.md`](DELIVERY_INDEX.md)。
+[`README.md`](README.md)；方法正文在 [`SKILL.md`](SKILL.md)；字段契约在
+[`references/data_guide.md`](references/data_guide.md)。
 
 本项目为本地研究型 Agent，**不是** QuantSkills 官方或社区收录项目；
 未经维护者审核，不代表 QuantSkills 官方背书。仅沿用分析型 Agent 的工程规范与
