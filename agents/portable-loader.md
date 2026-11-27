@@ -36,3 +36,7 @@
   官方库只有期货行情与合约交割条款，混合锚定 run 不得当作 live 结论。
 - 期货模拟赛核验需要官方 CLI 已安装并授权；未满足时 `replay` 只输出等价回放范围，
   不产生委托。
+
+## Agent runtime entrypoints
+
+Codex, Claude Code, Hermes and OpenClaw should load the root `AGENTS.md` first. Cursor should follow `agents/cursor-rule.mdc`. The root `SKILL.md` provides the companion research workflow. Resolve the packaged runtime and reference files relative to the repository root.
